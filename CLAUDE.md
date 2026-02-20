@@ -11,10 +11,13 @@
 - 프롬프트에 명시되지 않은 기능을 추가하려 할 때
 
 **나쁜 예시:**
+
 > 프롬프트에 상태관리 언급이 없었지만 Zustand가 적합할 것 같아서 설치했습니다.
 
 **좋은 예시:**
+
 > 상태관리 방식이 명시되지 않았습니다. 다음 중 어떤 방식을 선호하시나요?
+>
 > 1. Zustand (경량, 단순한 전역 상태)
 > 2. Context API (외부 의존성 없음)
 > 3. 다른 방식
@@ -24,11 +27,13 @@
 ## 2. 파일 분리 & 폴더 구조 원칙
 
 ### 하나의 파일은 하나의 책임만 가진다
+
 - 컴포넌트 1개 = 파일 1개
 - 200줄이 넘어가면 분리를 고려할 것
 - 관련 없는 로직을 한 파일에 묶지 말 것
 
 ### 폴더 구조 기준
+
 ```
 src/
 ├── components/       # 재사용 가능한 UI 컴포넌트
@@ -50,6 +55,7 @@ src/
 ```
 
 ### 임포트 규칙
+
 - 같은 레벨의 파일끼리 직접 참조 금지
 - index.ts를 통해 외부로 노출할 것
 - 상대경로 깊이가 3단계 이상이면 alias 사용 (`@/`)
@@ -61,6 +67,7 @@ src/
 코드에 의미를 알 수 없는 숫자나 문자열을 직접 쓰지 말 것.
 
 **나쁜 예시:**
+
 ```typescript
 if (status === 'github_oauth_callback') { ... }
 setTimeout(fn, 3000)
@@ -69,25 +76,27 @@ const url = 'https://api.github.com/repos'
 ```
 
 **좋은 예시:**
+
 ```typescript
 // src/constants/auth.ts
 export const AUTH_STATUS = {
   GITHUB_OAUTH_CALLBACK: 'github_oauth_callback',
-} as const
+} as const;
 
 // src/constants/github.ts
 export const GITHUB_API = {
   BASE_URL: 'https://api.github.com/repos',
   MAX_ISSUES_PER_REQUEST: 50,
-} as const
+} as const;
 
 // src/constants/ui.ts
 export const DELAY_MS = {
   TOAST_DISMISS: 3000,
-} as const
+} as const;
 ```
 
 ### 상수 파일 위치
+
 - 전역에서 쓰는 상수 → `src/constants/`
 - 특정 feature에서만 쓰는 상수 → `src/features/[name]/constants.ts`
 - 컴포넌트 내부에서만 쓰는 상수 → 해당 컴포넌트 파일 상단에 선언
@@ -97,13 +106,16 @@ export const DELAY_MS = {
 ## 4. 유틸 함수 활용 원칙
 
 ### 유틸로 분리할 기준
+
 아래에 해당하면 반드시 util 함수로 분리할 것:
+
 - 같은 로직이 2곳 이상에서 사용되는 경우
 - 컴포넌트나 훅에서 순수 계산/변환 로직이 10줄 이상일 때
 - 외부 API 응답을 가공하는 로직
 - 날짜, 문자열, 배열 등의 데이터 변환
 
 **나쁜 예시:**
+
 ```typescript
 // 컴포넌트 안에 변환 로직이 섞임
 const IssueList = ({ issues }) => {
@@ -118,6 +130,7 @@ const IssueList = ({ issues }) => {
 ```
 
 **좋은 예시:**
+
 ```typescript
 // src/features/issues/utils/groupIssuesByType.ts
 export const groupIssuesByType = (issues: Issue[]): GroupedIssues => {
@@ -137,6 +150,7 @@ const IssueList = ({ issues }) => {
 ```
 
 ### 유틸 함수 작성 규칙
+
 - 순수 함수(pure function)로 작성할 것 (사이드이펙트 없음)
 - 함수명은 동사로 시작 (`get`, `format`, `parse`, `group`, `filter`, `convert`)
 - 하나의 함수는 하나의 일만 할 것
