@@ -24,7 +24,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       // 세션에 access token 노출 (클라이언트에서 사용 가능)
-      session.accessToken = token.accessToken as string;
+      session.accessToken = token.accessToken ?? '';
       return session;
     },
   },
