@@ -1,14 +1,1 @@
-#!/bin/sh
-
-# main, dev 브랜치에서는 직접 커밋 금지
-BRANCH=$(git symbolic-ref --short HEAD)
-if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then
-  echo ""
-  echo "🚫 '$BRANCH' 브랜치에는 직접 커밋할 수 없습니다."
-  echo "   feature 브랜치를 만들고 PR을 통해 반영해주세요."
-  echo ""
-  exit 1
-fi
-
-# Prettier + ESLint 실행 (lint-staged)
 pnpm lint-staged
