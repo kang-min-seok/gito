@@ -15,13 +15,14 @@ export default async function Home() {
           아이디어를 입력하면 기획서와 GitHub 이슈를 자동으로 만들어드려요.
         </p>
         <textarea
+          aria-label="아이디어 입력"
           placeholder="아이디어를 입력하세요. (예: 중고 거래 앱, 독서 기록 서비스...)"
           rows={6}
           style={{
             width: '100%',
             maxWidth: '600px',
             padding: '12px',
-            border: '1px solid #d1d5db',
+            border: '1px solid `#d1d5db`',
             borderRadius: '8px',
             fontSize: '14px',
             resize: 'vertical',
