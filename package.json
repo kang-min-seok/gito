@@ -21,13 +21,14 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.46",
-    "@anthropic-ai/sdk": "^0.78.0",
+    "@ai-sdk/google": "^3.0.30",
     "@octokit/rest": "^22.0.1",
     "ai": "^6.0.94",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
