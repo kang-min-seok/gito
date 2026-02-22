@@ -1,18 +1,23 @@
 import { AuthOptions } from 'next-auth';
 import GitHubProvider from 'next-auth/providers/github';
+import { GITHUB_OAUTH_SCOPE } from '@/constants/auth';
 
 export const authOptions: AuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GitHubProvider({
       clientId: process.env.AUTH_GITHUB_ID!,
       clientSecret: process.env.AUTH_GITHUB_SECRET!,
       authorization: {
         params: {
-          scope: 'read:user user:email repo project',
+          scope: GITHUB_OAUTH_SCOPE,
         },
       },
     }),
   ],
+  pages: {
+    signIn: '/',
+  },
   callbacks: {
     async jwt({ token, account }) {
       if (account?.access_token) {
