@@ -3,6 +3,22 @@ export interface SummaryFlowItem {
   description: string;
 }
 
+export interface MainFeatureItem {
+  name: string;
+  description: string;
+}
+
+export interface TargetUsers {
+  summary: string;
+  traits: string[];
+}
+
+export interface DetailedFlowItem {
+  step: string;
+  action: string;
+  detail: string;
+}
+
 export interface Proposal {
   overview: string;
   problem: string;
@@ -11,14 +27,14 @@ export interface Proposal {
     targetWay: string;
   };
   completionCriteria: string;
-  mainFeatures: string[];
-  targetUsers: string;
-  userAcquisitionPlan: string;
+  mainFeatures: MainFeatureItem[];
+  targetUsers: TargetUsers;
+  userAcquisitionPlan: string[];
 }
 
 export interface Scenarios {
   summaryFlow: SummaryFlowItem[];
-  detailedFlow: string;
+  detailedFlow: DetailedFlowItem[];
 }
 
 export interface TechChallengeItem {

@@ -1,11 +1,11 @@
-import { generateText } from 'ai';
+import { generateText, Output } from 'ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { gemini } from '@/lib/ai';
 import { GeneratePlanningSchema } from '@/features/planning/schemas';
 import { buildSystemPrompt, buildUserPrompt } from '@/features/planning/prompt';
-import { parseJsonResponse, parseNestedJsonStrings } from '@/features/planning/utils/parseResponse';
 import type { GeneratePlanningRequest } from '@/types/planning';
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -22,18 +22,22 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await generateText({
+    const { output } = await generateText({
       model: gemini,
       maxRetries: 0,
+      providerOptions: {
+        google: {
+          structuredOutputs: false,
+        } satisfies GoogleLanguageModelOptions,
+      },
+      output: Output.object({
+        schema: GeneratePlanningSchema,
+      }),
       system: buildSystemPrompt(),
       prompt: buildUserPrompt(idea, answers),
     });
 
-    const raw = parseJsonResponse(result.text);
-    const normalized = parseNestedJsonStrings(raw);
-    const validated = GeneratePlanningSchema.parse(normalized);
-
-    return Response.json(validated);
+    return Response.json(output);
   } catch (error: unknown) {
     console.error('[POST /api/generate/planning]', error);
 

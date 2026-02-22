@@ -40,17 +40,50 @@ export default function PlanningPage() {
 
         <div style={{ marginBottom: '12px' }}>
           <strong>주요 기능</strong>
-          <ul style={{ marginTop: '6px', paddingLeft: '20px' }}>
+          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {proposal.mainFeatures.map((f, i) => (
-              <li key={i} style={{ marginBottom: '4px' }}>
-                {f}
+              <div
+                key={i}
+                style={{
+                  padding: '10px 14px',
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                }}
+              >
+                <div style={{ fontWeight: '600', fontSize: '14px', marginBottom: '4px' }}>
+                  {f.name}
+                </div>
+                <div style={{ fontSize: '14px', color: '#374151' }}>{f.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: '12px' }}>
+          <strong>타겟 유저</strong>
+          <p style={{ marginTop: '4px', fontSize: '14px', color: '#374151', marginBottom: '8px' }}>
+            {proposal.targetUsers.summary}
+          </p>
+          <ul style={{ paddingLeft: '20px', margin: 0 }}>
+            {proposal.targetUsers.traits.map((trait, i) => (
+              <li key={i} style={{ fontSize: '14px', color: '#374151', marginBottom: '4px' }}>
+                {trait}
               </li>
             ))}
           </ul>
         </div>
 
-        <Field label="타겟 유저" value={proposal.targetUsers} />
-        <Field label="유저 확보 계획" value={proposal.userAcquisitionPlan} />
+        <div style={{ marginBottom: '12px' }}>
+          <strong>유저 확보 계획</strong>
+          <ul style={{ marginTop: '6px', paddingLeft: '20px' }}>
+            {proposal.userAcquisitionPlan.map((plan, i) => (
+              <li key={i} style={{ fontSize: '14px', color: '#374151', marginBottom: '6px' }}>
+                {plan}
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {/* 유저 시나리오 */}
@@ -76,8 +109,42 @@ export default function PlanningPage() {
           ))}
         </div>
 
-        <div style={{ whiteSpace: 'pre-wrap', fontSize: '14px', lineHeight: '1.7' }}>
-          {scenarios.detailedFlow}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {scenarios.detailedFlow.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                padding: '14px 16px',
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '6px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    background: '#e5e7eb',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                  }}
+                >
+                  {item.step}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '600' }}>{item.action}</span>
+              </div>
+              <p style={{ fontSize: '14px', color: '#374151', margin: 0 }}>{item.detail}</p>
+            </div>
+          ))}
         </div>
       </section>
 

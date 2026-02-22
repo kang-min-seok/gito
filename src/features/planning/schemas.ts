@@ -1,32 +1,42 @@
 import { z } from 'zod';
 
-// Gemini가 문자열 필드를 배열로 반환하는 경우가 있어 배열이면 줄바꿈으로 합쳐서 문자열로 변환한다.
-const coerceArrayToString = z.preprocess((val) => {
-  if (Array.isArray(val)) return val.join('\n');
-  return val;
-}, z.string());
-
 const SummaryFlowItemSchema = z.object({
   step: z.string(),
-  description: coerceArrayToString,
+  description: z.string(),
+});
+
+const MainFeatureItemSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+});
+
+const TargetUsersSchema = z.object({
+  summary: z.string(),
+  traits: z.array(z.string()),
+});
+
+const DetailedFlowItemSchema = z.object({
+  step: z.string(),
+  action: z.string(),
+  detail: z.string(),
 });
 
 const ProposalSchema = z.object({
-  overview: coerceArrayToString,
-  problem: coerceArrayToString,
+  overview: z.string(),
+  problem: z.string(),
   whyNeeded: z.object({
-    existingWay: coerceArrayToString,
-    targetWay: coerceArrayToString,
+    existingWay: z.string(),
+    targetWay: z.string(),
   }),
-  completionCriteria: coerceArrayToString,
-  mainFeatures: z.array(z.string()),
-  targetUsers: coerceArrayToString,
-  userAcquisitionPlan: coerceArrayToString,
+  completionCriteria: z.string(),
+  mainFeatures: z.array(MainFeatureItemSchema),
+  targetUsers: TargetUsersSchema,
+  userAcquisitionPlan: z.array(z.string()),
 });
 
 const ScenariosSchema = z.object({
   summaryFlow: z.array(SummaryFlowItemSchema),
-  detailedFlow: coerceArrayToString,
+  detailedFlow: z.array(DetailedFlowItemSchema),
 });
 
 const TechChallengeItemSchema = z.object({

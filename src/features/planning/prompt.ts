@@ -26,22 +26,19 @@ export function buildSystemPrompt(): string {
     '- proposal.whyNeeded.existingWay: 현재 사람들이 문제를 해결하는 방식과 그 한계\n' +
     '- proposal.whyNeeded.targetWay: 이 서비스가 지향하는 새로운 방식\n' +
     '- proposal.completionCriteria: MVP 기준, 어느 수준이면 완성이라 볼 수 있는지\n' +
-    '- proposal.mainFeatures: 핵심 기능 목록 (3~6개)\n' +
-    '- proposal.targetUsers: 타겟 유저를 구체적으로 정의 (직업, 상황, 특성 등)\n' +
-    '- proposal.userAcquisitionPlan: 초기 유저를 어떻게 확보할지 전략\n' +
+    '- proposal.mainFeatures: 핵심 기능 목록 (3~6개).\n' +
+    '  반드시 {"name": "기능명", "description": "기능 설명"} 형태의 객체 배열로 반환하세요.\n' +
+    '- proposal.targetUsers: 타겟 유저 정의.\n' +
+    '  반드시 {"summary": "한 문장 요약", "traits": ["특성1", "특성2", ...]} 형태로 반환하세요.\n' +
+    '- proposal.userAcquisitionPlan: 초기 유저를 어떻게 확보할지 전략 (2~4개).\n' +
+    '  반드시 ["전략1", "전략2", ...] 형태의 문자열 배열로 반환하세요.\n' +
     '- scenarios.summaryFlow: 대표 유저 시나리오를 단계별로 (4~7단계).\n' +
     '  반드시 {"step": "단계명", "description": "단계 설명"} 형태의 객체 배열로 반환하세요.\n' +
-    '- scenarios.detailedFlow: 위 단계별 흐름을 구체적인 텍스트로 서술 (마크다운 사용 가능)\n' +
+    '- scenarios.detailedFlow: 위 시나리오를 각 단계별로 구체적으로 서술 (4~7단계).\n' +
+    '  반드시 {"step": "단계명", "action": "유저 행동", "detail": "상세 설명"} 형태의 객체 배열로 반환하세요.\n' +
     '- techChallenge.challenges: 개발 시 마주칠 수 있는 기술적 도전 과제 (2~4개).\n' +
     '  반드시 {"title": "제목", "description": "설명"} 형태의 객체 배열로 반환하세요.\n' +
     '\n' +
-    '## 중요: JSON 형식 규칙\n' +
-    '\n' +
-    '- 반드시 순수 JSON만 반환하세요. 마크다운 코드 블록을 사용하지 마세요.\n' +
-    '- 중첩된 객체를 절대 JSON 문자열로 직렬화하지 마세요.\n' +
-    '  - 잘못된 예: "proposal": "{\\"overview\\":\\"...\\"}"\n' +
-    '  - 올바른 예: "proposal": {"overview": "..."}\n' +
-    '- 모든 중첩 구조는 실제 JSON 객체/배열로 반환해야 합니다.\n' +
     '- 모든 내용은 한국어로 작성하세요.'
   );
 }
