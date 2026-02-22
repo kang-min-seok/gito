@@ -37,6 +37,10 @@ export async function POST(req: Request) {
       prompt: buildUserPrompt(idea, answers),
     });
 
+    if (!output) {
+      return Response.json({ error: '기획서 생성에 실패했습니다.' }, { status: 500 });
+    }
+
     return Response.json(output);
   } catch (error: unknown) {
     console.error('[POST /api/generate/planning]', error);
