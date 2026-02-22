@@ -2,9 +2,8 @@ import { generateText, Output } from 'ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { gemini } from '@/lib/ai';
-import { GeneratePlanningSchema } from '@/features/planning/schemas';
+import { GeneratePlanningRequestSchema, GeneratePlanningSchema } from '@/features/planning/schemas';
 import { buildSystemPrompt, buildUserPrompt } from '@/features/planning/prompt';
-import type { GeneratePlanningRequest } from '@/types/planning';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 
 export async function POST(req: Request) {
@@ -14,12 +13,11 @@ export async function POST(req: Request) {
     return Response.json({ error: '로그인이 필요합니다.' }, { status: 401 });
   }
 
-  const body: GeneratePlanningRequest = await req.json();
-  const { idea, answers } = body;
-
-  if (!idea || idea.trim().length === 0) {
+  const parseResult = GeneratePlanningRequestSchema.safeParse(await req.json());
+  if (!parseResult.success) {
     return Response.json({ error: '아이디어를 입력해주세요.' }, { status: 400 });
   }
+  const { idea, answers } = parseResult.data;
 
   try {
     const { output } = await generateText({

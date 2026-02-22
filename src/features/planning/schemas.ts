@@ -65,3 +65,15 @@ export const GeneratePlanningSchema = z.discriminatedUnion('type', [
     questions: z.array(QuestionItemSchema),
   }),
 ]);
+
+export const GeneratePlanningRequestSchema = z.object({
+  idea: z.string().min(1),
+  answers: z
+    .array(
+      z.object({
+        question: z.string(),
+        answer: z.string(),
+      })
+    )
+    .optional(),
+});
