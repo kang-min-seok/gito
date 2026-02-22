@@ -12,7 +12,13 @@ import type { GeneratePlanningResult, QuestionItem, AnswerItem } from '@/types/p
 type FormState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'question'; questions: QuestionItem[]; answers: string[]; round: number }
+  | {
+      status: 'question';
+      questions: QuestionItem[];
+      answers: string[];
+      customModes: boolean[];
+      round: number;
+    }
   | { status: 'error'; message: string };
 
 interface IdeaFormProps {
@@ -60,6 +66,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
           status: 'question',
           questions: data.questions,
           answers: data.questions.map(() => ''),
+          customModes: data.questions.map(() => false),
           round: currentRound + 1,
         });
         return;
@@ -90,7 +97,25 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
     await submitIdea(answers, currentRound);
   }
 
-  function updateAnswer(index: number, value: string) {
+  function selectOption(index: number, value: string) {
+    if (formState.status !== 'question') return;
+    const nextAnswers = [...formState.answers];
+    const nextCustomModes = [...formState.customModes];
+    nextAnswers[index] = value;
+    nextCustomModes[index] = false;
+    setFormState({ ...formState, answers: nextAnswers, customModes: nextCustomModes });
+  }
+
+  function selectCustomMode(index: number) {
+    if (formState.status !== 'question') return;
+    const nextAnswers = [...formState.answers];
+    const nextCustomModes = [...formState.customModes];
+    nextAnswers[index] = '';
+    nextCustomModes[index] = true;
+    setFormState({ ...formState, answers: nextAnswers, customModes: nextCustomModes });
+  }
+
+  function updateCustomAnswer(index: number, value: string) {
     if (formState.status !== 'question') return;
     const next = [...formState.answers];
     next[index] = value;
@@ -174,8 +199,8 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                         type="radio"
                         name={`question-${i}`}
                         value={opt}
-                        checked={formState.answers[i] === opt}
-                        onChange={() => updateAnswer(i, opt)}
+                        checked={formState.answers[i] === opt && !formState.customModes[i]}
+                        onChange={() => selectOption(i, opt)}
                       />
                       {opt}
                     </label>
@@ -193,18 +218,16 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                       type="radio"
                       name={`question-${i}`}
                       value="__custom__"
-                      checked={
-                        formState.answers[i] !== '' && !q.options.includes(formState.answers[i])
-                      }
-                      onChange={() => updateAnswer(i, '')}
+                      checked={formState.customModes[i]}
+                      onChange={() => selectCustomMode(i)}
                     />
                     직접 입력
                   </label>
-                  {formState.answers[i] !== '' && !q.options.includes(formState.answers[i]) && (
+                  {formState.customModes[i] && (
                     <input
                       type="text"
                       value={formState.answers[i]}
-                      onChange={(e) => updateAnswer(i, e.target.value)}
+                      onChange={(e) => updateCustomAnswer(i, e.target.value)}
                       placeholder="직접 입력..."
                       style={{
                         padding: '8px 10px',
@@ -219,7 +242,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                 <input
                   type="text"
                   value={formState.answers[i]}
-                  onChange={(e) => updateAnswer(i, e.target.value)}
+                  onChange={(e) => updateCustomAnswer(i, e.target.value)}
                   placeholder="답변을 입력하세요..."
                   style={{
                     width: '100%',
