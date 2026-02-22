@@ -4,6 +4,7 @@ import { useEffect, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { PLANNING_STORAGE_KEY } from '@/constants/planning';
 import type { PlanningResult } from '@/types/planning';
+import { GeneratePlanningSchema } from '@/features/planning/schemas';
 
 export default function PlanningPage() {
   const router = useRouter();
@@ -15,9 +16,19 @@ export default function PlanningPage() {
       router.replace('/');
       return;
     }
-    startTransition(() => {
-      setData(JSON.parse(raw) as PlanningResult);
-    });
+    try {
+      const parsed = JSON.parse(raw);
+      const result = GeneratePlanningSchema.parse(parsed);
+      if (result.type !== 'planning') {
+        router.replace('/');
+        return;
+      }
+      startTransition(() => {
+        setData(result);
+      });
+    } catch {
+      router.replace('/');
+    }
   }, [router]);
 
   if (!data) return <div style={{ padding: '40px' }}>로딩 중...</div>;
