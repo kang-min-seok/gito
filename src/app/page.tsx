@@ -22,7 +22,7 @@ export default async function Home() {
             width: '100%',
             maxWidth: '600px',
             padding: '12px',
-            border: '1px solid `#d1d5db`',
+            border: '1px solid #d1d5db',
             borderRadius: '8px',
             fontSize: '14px',
             resize: 'vertical',
