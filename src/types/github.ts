@@ -16,3 +16,7 @@ export interface IssuePayload {
 export interface GeneratedIssue extends IssuePayload {
   children?: GeneratedIssue[];
 }
+
+export interface GenerateIssuesResult {
+  issues: GeneratedIssue[];
+}
