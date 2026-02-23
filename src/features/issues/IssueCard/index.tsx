@@ -2,27 +2,24 @@ import { GeneratedIssue } from '@/types/github';
 import { useState } from 'react';
 
 const TYPE_LABEL: Record<string, string> = {
-  epic: 'Epic',
   story: 'Story',
   task: 'Task',
 };
 
 const TYPE_COLOR: Record<string, { background: string; color: string }> = {
-  epic: { background: '#dbeafe', color: '#1d4ed8' },
   story: { background: '#dcfce7', color: '#15803d' },
   task: { background: '#fef9c3', color: '#a16207' },
 };
 
-const INDENT_PX: Record<string, number> = {
-  epic: 0,
-  story: 24,
-  task: 48,
-};
-
-export default function IssueCard({ issue }: { issue: GeneratedIssue }) {
+export default function IssueCard({
+  issue,
+  indent = 0,
+}: {
+  issue: GeneratedIssue;
+  indent?: number;
+}) {
   const [expanded, setExpanded] = useState(false);
   const badge = TYPE_COLOR[issue.type] ?? { background: '#f3f4f6', color: '#374151' };
-  const indent = INDENT_PX[issue.type] ?? 0;
 
   return (
     <div style={{ marginLeft: `${indent}px` }}>
@@ -84,7 +81,7 @@ export default function IssueCard({ issue }: { issue: GeneratedIssue }) {
 
       {/* 하위 이슈 */}
       {issue.children?.map((child, i) => (
-        <IssueCard key={i} issue={child} />
+        <IssueCard key={i} issue={child} indent={24} />
       ))}
     </div>
   );

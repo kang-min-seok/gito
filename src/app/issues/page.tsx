@@ -34,13 +34,47 @@ export default function IssuesPage() {
     <main style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>이슈 목록</h1>
       <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '32px' }}>
-        총 {data.issues.length}개의 Epic이 생성되었습니다. 각 항목을 클릭하면 상세 내용을 볼 수
+        총 {data.issues.length}개의 Epic으로 구성되었습니다. 각 항목을 클릭하면 상세 내용을 볼 수
         있습니다.
       </p>
 
-      <div>
-        {data.issues.map((issue, i) => (
-          <IssueCard key={i} issue={issue} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        {data.issues.map((group, i) => (
+          <section key={i}>
+            {/* Epic 헤더 */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '12px',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: '#dbeafe',
+                  color: '#1d4ed8',
+                  flexShrink: 0,
+                }}
+              >
+                Epic
+              </span>
+              <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
+                {group.epic}
+              </span>
+            </div>
+
+            {/* Stories */}
+            <div>
+              {group.stories.map((story, j) => (
+                <IssueCard key={j} issue={story} />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 

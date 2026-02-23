@@ -6,7 +6,7 @@ const IssuePayloadSchema = z.object({
   title: z.string(),
   body: z.string(),
   labels: z.array(z.string()),
-  type: z.enum(['epic', 'story', 'task']),
+  type: z.enum(['story', 'task']),
 });
 
 const GeneratedIssueSchema: z.ZodType<GeneratedIssue> = z.lazy(() =>
@@ -15,8 +15,13 @@ const GeneratedIssueSchema: z.ZodType<GeneratedIssue> = z.lazy(() =>
   })
 );
 
+const EpicGroupSchema = z.object({
+  epic: z.string(),
+  stories: z.array(GeneratedIssueSchema),
+});
+
 export const GenerateIssuesSchema = z.object({
-  issues: z.array(GeneratedIssueSchema),
+  issues: z.array(EpicGroupSchema),
 });
 
 export const GenerateIssuesRequestSchema = z.object({
