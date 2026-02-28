@@ -3,13 +3,16 @@
 import { useEffect, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ISSUES_STORAGE_KEY } from '@/constants/planning';
-import type { GenerateIssuesResult } from '@/types/github';
+import type { GenerateIssuesResult, GeneratedIssue } from '@/types/github';
 import { GenerateIssuesSchema } from '@/features/issues/schemas';
 import IssueCard from '@/features/issues/IssueCard';
+import { saveIssuesToStorage } from '@/features/issues/utils/updateIssuesStorage';
 
 export default function IssuesPage() {
   const router = useRouter();
   const [data, setData] = useState<GenerateIssuesResult | null>(null);
+  const [editingEpicIndex, setEditingEpicIndex] = useState<number | null>(null);
+  const [epicDraft, setEpicDraft] = useState('');
 
   useEffect(() => {
     const raw = sessionStorage.getItem(ISSUES_STORAGE_KEY);
@@ -27,6 +30,40 @@ export default function IssuesPage() {
       router.replace('/');
     }
   }, [router]);
+
+  const handleStoryUpdate = (epicIndex: number, storyIndex: number, updated: GeneratedIssue) => {
+    if (!data) return;
+    const newIssues = data.issues.map((group, i) => {
+      if (i !== epicIndex) return group;
+      return {
+        ...group,
+        stories: group.stories.map((story, j) => (j === storyIndex ? updated : story)),
+      };
+    });
+    const newData = { issues: newIssues };
+    startTransition(() => setData(newData));
+    saveIssuesToStorage(newData);
+  };
+
+  const handleEpicEditStart = (index: number, currentEpic: string) => {
+    setEpicDraft(currentEpic);
+    setEditingEpicIndex(index);
+  };
+
+  const handleEpicSave = (epicIndex: number) => {
+    if (!data) return;
+    const newIssues = data.issues.map((group, i) =>
+      i === epicIndex ? { ...group, epic: epicDraft } : group
+    );
+    const newData = { issues: newIssues };
+    startTransition(() => setData(newData));
+    saveIssuesToStorage(newData);
+    setEditingEpicIndex(null);
+  };
+
+  const handleEpicCancel = () => {
+    setEditingEpicIndex(null);
+  };
 
   if (!data) return <div style={{ padding: '40px' }}>로딩 중...</div>;
 
@@ -63,15 +100,89 @@ export default function IssuesPage() {
               >
                 Epic
               </span>
-              <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827' }}>
-                {group.epic}
-              </span>
+              {editingEpicIndex === i ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                  <input
+                    value={epicDraft}
+                    onChange={(e) => setEpicDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleEpicSave(i);
+                      if (e.key === 'Escape') handleEpicCancel();
+                    }}
+                    autoFocus
+                    style={{
+                      flex: 1,
+                      fontSize: '16px',
+                      fontWeight: '700',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      outline: 'none',
+                      color: '#111827',
+                    }}
+                  />
+                  <button
+                    onClick={handleEpicCancel}
+                    style={{
+                      padding: '4px 12px',
+                      background: 'white',
+                      color: '#111827',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={() => handleEpicSave(i)}
+                    style={{
+                      padding: '4px 12px',
+                      background: '#111827',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    저장
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827', flex: 1 }}>
+                    {group.epic}
+                  </span>
+                  <button
+                    onClick={() => handleEpicEditStart(i, group.epic)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#9ca3af',
+                      fontSize: '12px',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#374151')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
+                  >
+                    수정
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Stories */}
             <div>
               {group.stories.map((story, j) => (
-                <IssueCard key={j} issue={story} />
+                <IssueCard
+                  key={j}
+                  issue={story}
+                  onUpdate={(updated) => handleStoryUpdate(i, j, updated)}
+                />
               ))}
             </div>
           </section>
