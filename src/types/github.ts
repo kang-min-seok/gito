@@ -34,3 +34,8 @@ export interface GitHubRepoItem {
   isPrivate: boolean;
   updatedAt: string | null;
 }
+
+export interface GitHubOwnerInfo {
+  login: string;
+  orgs: Array<{ login: string }>;
+}

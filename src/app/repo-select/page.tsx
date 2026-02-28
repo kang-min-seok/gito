@@ -2,17 +2,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { GitHubRepoItem } from '@/types/github';
+import type { GitHubRepoItem, GitHubOwnerInfo } from '@/types/github';
 
-type FetchState =
+type RepoFetchState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'success'; repos: GitHubRepoItem[] };
 
+type OwnerFetchState =
+  | { status: 'loading' }
+  | { status: 'error' }
+  | { status: 'success'; info: GitHubOwnerInfo };
+
 export default function RepoSelectPage() {
   const router = useRouter();
-  const [fetchState, setFetchState] = useState<FetchState>({ status: 'loading' });
+  const [repoState, setRepoState] = useState<RepoFetchState>({ status: 'loading' });
+  const [ownerState, setOwnerState] = useState<OwnerFetchState>({ status: 'loading' });
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepoItem | null>(null);
+  const [appSettingsUrl, setAppSettingsUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/github/repos')
@@ -23,27 +31,58 @@ export default function RepoSelectPage() {
         }
         return res.json() as Promise<GitHubRepoItem[]>;
       })
-      .then((repos) => setFetchState({ status: 'success', repos }))
+      .then((repos) => setRepoState({ status: 'success', repos }))
       .catch((err: unknown) =>
-        setFetchState({
+        setRepoState({
           status: 'error',
           message: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
         })
       );
+
+    fetch('/api/github/orgs')
+      .then(async (res) => {
+        if (!res.ok) throw new Error();
+        return res.json() as Promise<GitHubOwnerInfo>;
+      })
+      .then((info) => {
+        setOwnerState({ status: 'success', info });
+        setSelectedOwner(info.login);
+      })
+      .catch(() => setOwnerState({ status: 'error' }));
+
+    fetch('/api/github/app-settings-url')
+      .then(async (res) => {
+        if (!res.ok) throw new Error();
+        return res.json() as Promise<{ url: string }>;
+      })
+      .then(({ url }) => setAppSettingsUrl(url))
+      .catch(() => {});
   }, []);
 
+  const handleOwnerSelect = (login: string) => {
+    setSelectedOwner(login);
+    setSelectedRepo(null);
+  };
+
+  const filteredRepos =
+    repoState.status === 'success' && selectedOwner
+      ? repoState.repos.filter((repo) => repo.owner === selectedOwner)
+      : repoState.status === 'success'
+        ? repoState.repos
+        : [];
+
+  const isLoading = repoState.status === 'loading' || ownerState.status === 'loading';
+
   return (
-    <main style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto' }}>
+    <main style={{ padding: '40px 24px', maxWidth: '960px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>레포지토리 선택</h1>
       <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '32px' }}>
         이슈를 등록할 GitHub 레포지토리를 선택하세요.
       </p>
 
-      {fetchState.status === 'loading' && (
-        <p style={{ color: '#6b7280', fontSize: '14px' }}>레포지토리 목록을 불러오는 중...</p>
-      )}
+      {isLoading && <p style={{ color: '#6b7280', fontSize: '14px' }}>불러오는 중...</p>}
 
-      {fetchState.status === 'error' && (
+      {repoState.status === 'error' && (
         <div
           style={{
             padding: '16px',
@@ -54,71 +93,220 @@ export default function RepoSelectPage() {
             fontSize: '14px',
           }}
         >
-          {fetchState.message}
+          {repoState.message}
         </div>
       )}
 
-      {fetchState.status === 'success' && (
+      {!isLoading && repoState.status === 'success' && (
         <>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              maxHeight: '480px',
-              overflowY: 'auto',
-              marginBottom: '24px',
-              paddingRight: '4px',
-            }}
-          >
-            {fetchState.repos.map((repo) => {
-              const isSelected = selectedRepo?.fullName === repo.fullName;
-              return (
-                <button
-                  key={repo.fullName}
-                  onClick={() => setSelectedRepo(isSelected ? null : repo)}
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
+            {/* 사이드바: 개인 + 조직 목록 + 권한 설정 */}
+            <div
+              style={{
+                width: '180px',
+                flexShrink: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+              }}
+            >
+              <p
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '8px',
+                }}
+              >
+                계정 / 조직
+              </p>
+
+              {ownerState.status === 'success' && (
+                <>
+                  <OwnerButton
+                    label={ownerState.info.login}
+                    sublabel="개인"
+                    isSelected={selectedOwner === ownerState.info.login}
+                    onClick={() => handleOwnerSelect(ownerState.info.login)}
+                  />
+
+                  {ownerState.info.orgs.length > 0 && (
+                    <div
+                      style={{
+                        borderTop: '1px solid #f3f4f6',
+                        marginTop: '8px',
+                        paddingTop: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}
+                    >
+                      {ownerState.info.orgs.map((org) => (
+                        <OwnerButton
+                          key={org.login}
+                          label={org.login}
+                          sublabel="조직"
+                          isSelected={selectedOwner === org.login}
+                          onClick={() => handleOwnerSelect(org.login)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {ownerState.status === 'error' && (
+                <p style={{ fontSize: '12px', color: '#dc2626' }}>
+                  조직 목록을 불러오지 못했습니다.
+                </p>
+              )}
+
+              {/* 조직 권한 설정 섹션 */}
+              <div
+                style={{
+                  borderTop: '1px solid #f3f4f6',
+                  marginTop: '12px',
+                  paddingTop: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#9ca3af',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    marginBottom: '4px',
+                  }}
+                >
+                  조직 권한
+                </p>
+                <p style={{ fontSize: '11px', color: '#9ca3af', lineHeight: '1.5' }}>
+                  목록에 없는 조직이 있다면 권한을 설정하세요.
+                </p>
+                {appSettingsUrl && (
+                  <a
+                    href={appSettingsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'block',
+                      padding: '7px 10px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                      background: 'white',
+                    }}
+                  >
+                    GitHub에서 권한 설정 →
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* 레포 목록 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {filteredRepos.length === 0 ? (
+                <p style={{ fontSize: '14px', color: '#9ca3af', paddingTop: '8px' }}>
+                  레포지토리가 없습니다.
+                </p>
+              ) : (
+                <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: '4px',
-                    padding: '14px 16px',
-                    border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    background: isSelected ? '#f9fafb' : 'white',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    width: '100%',
+                    gap: '8px',
+                    maxHeight: '480px',
+                    overflowY: 'auto',
+                    paddingRight: '4px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                    <span
-                      style={{ fontSize: '14px', fontWeight: '600', color: '#111827', flex: 1 }}
-                    >
-                      {repo.fullName}
-                    </span>
-                    {repo.isPrivate && (
-                      <span
+                  {filteredRepos.map((repo) => {
+                    const isSelected = selectedRepo?.fullName === repo.fullName;
+                    return (
+                      <button
+                        key={repo.fullName}
+                        onClick={() => setSelectedRepo(isSelected ? null : repo)}
                         style={{
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          background: '#f3f4f6',
-                          color: '#6b7280',
-                          flexShrink: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          gap: '4px',
+                          padding: '14px 16px',
+                          border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          background: isSelected ? '#f9fafb' : 'white',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%',
                         }}
                       >
-                        Private
-                      </span>
-                    )}
-                  </div>
-                  {repo.description && (
-                    <span style={{ fontSize: '13px', color: '#6b7280' }}>{repo.description}</span>
-                  )}
-                </button>
-              );
-            })}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            width: '100%',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: '#111827',
+                              flex: 1,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {repo.name}
+                          </span>
+                          {repo.isPrivate && (
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: '#f3f4f6',
+                                color: '#6b7280',
+                                flexShrink: 0,
+                              }}
+                            >
+                              Private
+                            </span>
+                          )}
+                        </div>
+                        {repo.description && (
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              color: '#6b7280',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              width: '100%',
+                            }}
+                          >
+                            {repo.description}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {selectedRepo && (
@@ -173,5 +361,58 @@ export default function RepoSelectPage() {
         </button>
       </div>
     </main>
+  );
+}
+
+function OwnerButton({
+  label,
+  sublabel,
+  isSelected,
+  onClick,
+}: {
+  label: string;
+  sublabel: string;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '2px',
+        padding: '8px 10px',
+        border: 'none',
+        borderRadius: '6px',
+        background: isSelected ? '#111827' : 'transparent',
+        cursor: 'pointer',
+        textAlign: 'left',
+        width: '100%',
+      }}
+    >
+      <span
+        style={{
+          fontSize: '13px',
+          fontWeight: '600',
+          color: isSelected ? 'white' : '#374151',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          width: '100%',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: '11px',
+          color: isSelected ? '#d1d5db' : '#9ca3af',
+        }}
+      >
+        {sublabel}
+      </span>
+    </button>
   );
 }
