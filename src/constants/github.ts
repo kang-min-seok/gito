@@ -9,3 +9,8 @@ export const ISSUE_LABEL = {
   STORY: 'story',
   TASK: 'task',
 } as const;
+
+export const GITHUB_CACHE_KEY = {
+  REPOS: 'gito_repos_cache',
+  OWNER: 'gito_owner_cache',
+} as const;

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GitHubRepoItem, GitHubOwnerInfo } from '@/types/github';
+import { GITHUB_CACHE_KEY } from '@/constants/github';
 
 type RepoFetchState =
   | { status: 'loading' }
@@ -14,6 +15,32 @@ type OwnerFetchState =
   | { status: 'error' }
   | { status: 'success'; info: GitHubOwnerInfo };
 
+const loadFromCache = (): { repos: GitHubRepoItem[]; owner: GitHubOwnerInfo } | null => {
+  try {
+    const reposRaw = localStorage.getItem(GITHUB_CACHE_KEY.REPOS);
+    const ownerRaw = localStorage.getItem(GITHUB_CACHE_KEY.OWNER);
+    if (!reposRaw || !ownerRaw) return null;
+    return {
+      repos: JSON.parse(reposRaw) as GitHubRepoItem[],
+      owner: JSON.parse(ownerRaw) as GitHubOwnerInfo,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const saveToCache = (repos: GitHubRepoItem[], owner: GitHubOwnerInfo) => {
+  try {
+    localStorage.setItem(GITHUB_CACHE_KEY.REPOS, JSON.stringify(repos));
+    localStorage.setItem(GITHUB_CACHE_KEY.OWNER, JSON.stringify(owner));
+  } catch {}
+};
+
+const clearCache = () => {
+  localStorage.removeItem(GITHUB_CACHE_KEY.REPOS);
+  localStorage.removeItem(GITHUB_CACHE_KEY.OWNER);
+};
+
 export default function RepoSelectPage() {
   const router = useRouter();
   const [repoState, setRepoState] = useState<RepoFetchState>({ status: 'loading' });
@@ -22,7 +49,16 @@ export default function RepoSelectPage() {
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepoItem | null>(null);
   const [appSettingsUrl, setAppSettingsUrl] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchAll = useCallback(() => {
+    let fetchedRepos: GitHubRepoItem[] | null = null;
+    let fetchedOwner: GitHubOwnerInfo | null = null;
+
+    const trySaveCache = () => {
+      if (fetchedRepos && fetchedOwner) {
+        saveToCache(fetchedRepos, fetchedOwner);
+      }
+    };
+
     fetch('/api/github/repos')
       .then(async (res) => {
         if (!res.ok) {
@@ -31,7 +67,11 @@ export default function RepoSelectPage() {
         }
         return res.json() as Promise<GitHubRepoItem[]>;
       })
-      .then((repos) => setRepoState({ status: 'success', repos }))
+      .then((repos) => {
+        fetchedRepos = repos;
+        setRepoState({ status: 'success', repos });
+        trySaveCache();
+      })
       .catch((err: unknown) =>
         setRepoState({
           status: 'error',
@@ -45,10 +85,25 @@ export default function RepoSelectPage() {
         return res.json() as Promise<GitHubOwnerInfo>;
       })
       .then((info) => {
+        fetchedOwner = info;
         setOwnerState({ status: 'success', info });
         setSelectedOwner(info.login);
+        trySaveCache();
       })
       .catch(() => setOwnerState({ status: 'error' }));
+  }, []);
+
+  useEffect(() => {
+    const cached = loadFromCache();
+    if (cached) {
+      startTransition(() => {
+        setRepoState({ status: 'success', repos: cached.repos });
+        setOwnerState({ status: 'success', info: cached.owner });
+        setSelectedOwner(cached.owner.login);
+      });
+    } else {
+      fetchAll();
+    }
 
     fetch('/api/github/app-settings-url')
       .then(async (res) => {
@@ -57,7 +112,17 @@ export default function RepoSelectPage() {
       })
       .then(({ url }) => setAppSettingsUrl(url))
       .catch(() => {});
-  }, []);
+  }, [fetchAll]);
+
+  const handleRefresh = () => {
+    clearCache();
+    startTransition(() => {
+      setSelectedRepo(null);
+      setRepoState({ status: 'loading' });
+      setOwnerState({ status: 'loading' });
+    });
+    fetchAll();
+  };
 
   const handleOwnerSelect = (login: string) => {
     setSelectedOwner(login);
@@ -75,7 +140,34 @@ export default function RepoSelectPage() {
 
   return (
     <main style={{ padding: '40px 24px', maxWidth: '960px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>레포지토리 선택</h1>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: '8px',
+        }}
+      >
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>레포지토리 선택</h1>
+        {!isLoading && repoState.status === 'success' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={handleRefresh}
+              style={{
+                padding: '6px 14px',
+                fontSize: '13px',
+                color: '#374151',
+                background: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              새로고침
+            </button>
+          </div>
+        )}
+      </div>
       <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '32px' }}>
         이슈를 등록할 GitHub 레포지토리를 선택하세요.
       </p>
