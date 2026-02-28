@@ -205,6 +205,20 @@ export default function IssuesPage() {
           기획서로 돌아가기
         </button>
         <button
+          onClick={() => router.push('/repo-select')}
+          style={{
+            padding: '10px 24px',
+            background: '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            cursor: 'pointer',
+          }}
+        >
+          레포에 이슈 등록하기
+        </button>
+        <button
           onClick={() => router.push('/')}
           style={{
             padding: '10px 24px',

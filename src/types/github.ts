@@ -25,3 +25,12 @@ export interface EpicGroup {
 export interface GenerateIssuesResult {
   issues: EpicGroup[];
 }
+
+export interface GitHubRepoItem {
+  owner: string;
+  name: string;
+  fullName: string;
+  description: string | null;
+  isPrivate: boolean;
+  updatedAt: string | null;
+}
