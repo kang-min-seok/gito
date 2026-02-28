@@ -39,3 +39,14 @@ export interface GitHubOwnerInfo {
   login: string;
   orgs: Array<{ login: string }>;
 }
+
+export interface CreatedIssue {
+  title: string;
+  url: string;
+  number: number;
+}
+
+export interface CreateIssuesResult {
+  created: CreatedIssue[];
+  failed: Array<{ title: string; error: string }>;
+}

@@ -27,3 +27,9 @@ export const GenerateIssuesSchema = z.object({
 export const GenerateIssuesRequestSchema = z.object({
   planning: GeneratePlanningSchema,
 });
+
+export const CreateIssuesRequestSchema = z.object({
+  owner: z.string(),
+  repo: z.string(),
+  issues: GenerateIssuesSchema,
+});

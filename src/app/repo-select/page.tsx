@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GitHubRepoItem, GitHubOwnerInfo } from '@/types/github';
 import { GITHUB_CACHE_KEY } from '@/constants/github';
+import { SELECTED_REPO_KEY } from '@/constants/planning';
 
 type RepoFetchState =
   | { status: 'loading' }
@@ -127,6 +128,12 @@ export default function RepoSelectPage() {
   const handleOwnerSelect = (login: string) => {
     setSelectedOwner(login);
     setSelectedRepo(null);
+  };
+
+  const handleCreateIssues = () => {
+    if (!selectedRepo) return;
+    sessionStorage.setItem(SELECTED_REPO_KEY, JSON.stringify(selectedRepo));
+    router.push('/result');
   };
 
   const filteredRepos =
@@ -439,6 +446,7 @@ export default function RepoSelectPage() {
         </button>
         <button
           disabled={!selectedRepo}
+          onClick={handleCreateIssues}
           style={{
             padding: '10px 24px',
             background: selectedRepo ? '#111827' : '#e5e7eb',
