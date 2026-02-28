@@ -2,13 +2,16 @@
 
 import { useEffect, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { PLANNING_STORAGE_KEY } from '@/constants/planning';
+import { PLANNING_STORAGE_KEY, ISSUES_STORAGE_KEY } from '@/constants/planning';
 import type { PlanningResult } from '@/types/planning';
+import type { GenerateIssuesResult } from '@/types/github';
 import { GeneratePlanningSchema } from '@/features/planning/schemas';
 
 export default function PlanningPage() {
   const router = useRouter();
   const [data, setData] = useState<PlanningResult | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = sessionStorage.getItem(PLANNING_STORAGE_KEY);
@@ -172,20 +175,65 @@ export default function PlanningPage() {
         ))}
       </section>
 
-      <button
-        onClick={() => router.push('/')}
-        style={{
-          padding: '10px 24px',
-          background: '#111827',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '14px',
-          cursor: 'pointer',
-        }}
-      >
-        새 아이디어 입력하기
-      </button>
+      {generateError && (
+        <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '12px' }}>{generateError}</p>
+      )}
+
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <button
+          onClick={async () => {
+            setIsGenerating(true);
+            setGenerateError(null);
+            try {
+              const res = await fetch('/api/generate/issues', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ planning: data }),
+              });
+              if (!res.ok) {
+                const { error } = (await res.json()) as { error: string };
+                setGenerateError(error ?? '이슈 생성 중 오류가 발생했습니다.');
+                return;
+              }
+              const result = (await res.json()) as GenerateIssuesResult;
+              sessionStorage.setItem(ISSUES_STORAGE_KEY, JSON.stringify(result));
+              router.push('/issues');
+            } catch {
+              setGenerateError('이슈 생성 중 오류가 발생했습니다.');
+            } finally {
+              setIsGenerating(false);
+            }
+          }}
+          disabled={isGenerating}
+          style={{
+            padding: '10px 24px',
+            background: isGenerating ? '#6b7280' : '#2563eb',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            cursor: isGenerating ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {isGenerating ? '이슈 생성 중...' : '이슈 생성하기'}
+        </button>
+
+        <button
+          onClick={() => router.push('/')}
+          disabled={isGenerating}
+          style={{
+            padding: '10px 24px',
+            background: '#111827',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            cursor: isGenerating ? 'not-allowed' : 'pointer',
+          }}
+        >
+          새 아이디어 입력하기
+        </button>
+      </div>
     </main>
   );
 }

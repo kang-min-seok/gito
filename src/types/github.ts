@@ -1,4 +1,4 @@
-export type IssueType = 'epic' | 'story' | 'task';
+export type IssueType = 'story' | 'task';
 
 export interface GitHubRepo {
   owner: string;
@@ -15,4 +15,13 @@ export interface IssuePayload {
 
 export interface GeneratedIssue extends IssuePayload {
   children?: GeneratedIssue[];
+}
+
+export interface EpicGroup {
+  epic: string;
+  stories: GeneratedIssue[];
+}
+
+export interface GenerateIssuesResult {
+  issues: EpicGroup[];
 }
