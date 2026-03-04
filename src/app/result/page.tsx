@@ -4,65 +4,116 @@ import { useEffect, useState, startTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ISSUES_STORAGE_KEY, SELECTED_REPO_KEY } from '@/constants/planning';
 import { GenerateIssuesSchema } from '@/features/issues/schemas';
-import type { CreateIssuesResult, GitHubRepoItem } from '@/types/github';
+import type { CreateIssuesResult, GitHubRepoItem, SetupProjectResult } from '@/types/github';
 
 type PageState =
-  | { status: 'creating' }
-  | { status: 'success'; result: CreateIssuesResult; repo: GitHubRepoItem }
+  | { status: 'creating_project' }
+  | { status: 'creating_issues' }
+  | {
+      status: 'success';
+      issuesResult: CreateIssuesResult;
+      repo: GitHubRepoItem;
+      projectUrl: string;
+    }
   | { status: 'error'; message: string };
+
+const spinnerStyle: React.CSSProperties = {
+  width: '40px',
+  height: '40px',
+  border: '3px solid #e5e7eb',
+  borderTop: '3px solid #111827',
+  borderRadius: '50%',
+  animation: 'spin 0.8s linear infinite',
+};
 
 export default function ResultPage() {
   const router = useRouter();
-  const [pageState, setPageState] = useState<PageState>({ status: 'creating' });
+  const [pageState, setPageState] = useState<PageState>({ status: 'creating_project' });
   const hasFetched = useRef(false); // Strict모드를 막는 임시 방편
 
   useEffect(() => {
     if (hasFetched.current) return; // Strict모드를 막는 임시 방편
     hasFetched.current = true;
-    const issuesRaw = sessionStorage.getItem(ISSUES_STORAGE_KEY);
-    const repoRaw = sessionStorage.getItem(SELECTED_REPO_KEY);
 
-    if (!issuesRaw || !repoRaw) {
-      router.replace('/');
-      return;
-    }
+    async function run() {
+      const issuesRaw = sessionStorage.getItem(ISSUES_STORAGE_KEY);
+      const repoRaw = sessionStorage.getItem(SELECTED_REPO_KEY);
 
-    let issues;
-    let repo: GitHubRepoItem;
-    try {
-      issues = GenerateIssuesSchema.parse(JSON.parse(issuesRaw));
-      repo = JSON.parse(repoRaw) as GitHubRepoItem;
-    } catch {
-      router.replace('/');
-      return;
-    }
+      if (!issuesRaw || !repoRaw) {
+        router.replace('/');
+        return;
+      }
 
-    fetch('/api/github/create-issues', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ owner: repo.owner, repo: repo.name, issues }),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? '이슈 생성 중 오류가 발생했습니다.');
-        }
-        return res.json() as Promise<CreateIssuesResult>;
-      })
-      .then((result) => {
-        startTransition(() => setPageState({ status: 'success', result, repo }));
-      })
-      .catch((err: unknown) => {
-        startTransition(() =>
-          setPageState({
-            status: 'error',
-            message: err instanceof Error ? err.message : '이슈 생성 중 오류가 발생했습니다.',
-          })
-        );
+      let issues;
+      let repo: GitHubRepoItem;
+      try {
+        issues = GenerateIssuesSchema.parse(JSON.parse(issuesRaw));
+        repo = JSON.parse(repoRaw) as GitHubRepoItem;
+      } catch {
+        router.replace('/');
+        return;
+      }
+
+      // Phase 1: Create project with custom fields
+      const epicNames = issues.issues.map((g) => g.epic);
+      const setupRes = await fetch('/api/github/setup-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: repo.owner, projectTitle: repo.name, epicNames }),
       });
+
+      if (!setupRes.ok) {
+        const body = await setupRes.json().catch(() => ({}));
+        throw new Error(
+          (body as { error?: string }).error ?? '프로젝트 생성 중 오류가 발생했습니다.'
+        );
+      }
+
+      const projectInfo = (await setupRes.json()) as SetupProjectResult;
+      startTransition(() => setPageState({ status: 'creating_issues' }));
+
+      // Phase 2: Create issues and add to project
+      const createRes = await fetch('/api/github/create-issues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          owner: repo.owner,
+          repo: repo.name,
+          issues,
+          project: {
+            projectId: projectInfo.projectId,
+            issueTypeFieldId: projectInfo.issueTypeFieldId,
+            storyOptionId: projectInfo.storyOptionId,
+            taskOptionId: projectInfo.taskOptionId,
+            epicFieldId: projectInfo.epicFieldId,
+            epicOptions: projectInfo.epicOptions,
+          },
+        }),
+      });
+
+      if (!createRes.ok) {
+        const body = await createRes.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? '이슈 생성 중 오류가 발생했습니다.');
+      }
+
+      const issuesResult = (await createRes.json()) as CreateIssuesResult;
+      startTransition(() =>
+        setPageState({ status: 'success', issuesResult, repo, projectUrl: projectInfo.projectUrl })
+      );
+    }
+
+    run().catch((err: unknown) => {
+      startTransition(() =>
+        setPageState({
+          status: 'error',
+          message: err instanceof Error ? err.message : '오류가 발생했습니다.',
+        })
+      );
+    });
   }, [router]);
 
-  if (pageState.status === 'creating') {
+  if (pageState.status === 'creating_project' || pageState.status === 'creating_issues') {
+    const isProject = pageState.status === 'creating_project';
     return (
       <main
         style={{
@@ -75,21 +126,14 @@ export default function ResultPage() {
         }}
       >
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid #e5e7eb',
-            borderTop: '3px solid #111827',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-          }}
-        />
+        <div style={spinnerStyle} />
         <p style={{ fontSize: '16px', color: '#374151', fontWeight: '600' }}>
-          이슈를 생성하고 있습니다...
+          {isProject ? '프로젝트를 생성하고 있습니다...' : '이슈를 생성하고 있습니다...'}
         </p>
         <p style={{ fontSize: '13px', color: '#9ca3af' }}>
-          GitHub에 이슈를 순서대로 등록하는 중입니다. 잠시만 기다려 주세요.
+          {isProject
+            ? 'GitHub Projects와 커스텀 필드를 설정하는 중입니다.'
+            : 'GitHub에 이슈를 등록하고 프로젝트에 추가하는 중입니다.'}
         </p>
       </main>
     );
@@ -99,7 +143,7 @@ export default function ResultPage() {
     return (
       <main style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px', color: '#dc2626' }}>
-          이슈 생성 실패
+          오류가 발생했습니다
         </h1>
         <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '24px' }}>
           {pageState.message}
@@ -138,21 +182,21 @@ export default function ResultPage() {
     );
   }
 
-  const { result, repo } = pageState;
+  const { issuesResult, repo, projectUrl } = pageState;
   const repoIssuesUrl = `https://github.com/${repo.fullName}/issues`;
 
   return (
     <main style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>이슈 생성 완료</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>완료</h1>
       <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '32px' }}>
-        <strong>{repo.fullName}</strong>에 총 <strong>{result.created.length}개</strong>의 이슈가
-        등록되었습니다.
-        {result.failed.length > 0 && (
-          <span style={{ color: '#dc2626' }}> ({result.failed.length}개 실패)</span>
+        <strong>{repo.fullName}</strong>에 총 <strong>{issuesResult.created.length}개</strong>의
+        이슈가 등록되었습니다.
+        {issuesResult.failed.length > 0 && (
+          <span style={{ color: '#dc2626' }}> ({issuesResult.failed.length}개 실패)</span>
         )}
       </p>
 
-      {result.created.length > 0 && (
+      {issuesResult.created.length > 0 && (
         <section style={{ marginBottom: '32px' }}>
           <p
             style={{
@@ -167,7 +211,7 @@ export default function ResultPage() {
             생성된 이슈
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {result.created.map((issue) => (
+            {issuesResult.created.map((issue) => (
               <a
                 key={issue.number}
                 href={issue.url}
@@ -204,7 +248,7 @@ export default function ResultPage() {
         </section>
       )}
 
-      {result.failed.length > 0 && (
+      {issuesResult.failed.length > 0 && (
         <section style={{ marginBottom: '32px' }}>
           <p
             style={{
@@ -219,7 +263,7 @@ export default function ResultPage() {
             생성 실패
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {result.failed.map((issue, i) => (
+            {issuesResult.failed.map((issue, i) => (
               <div
                 key={i}
                 style={{
@@ -244,7 +288,7 @@ export default function ResultPage() {
 
       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         <a
-          href={repoIssuesUrl}
+          href={projectUrl}
           target="_blank"
           rel="noopener noreferrer"
           style={{
@@ -252,6 +296,23 @@ export default function ResultPage() {
             background: '#111827',
             color: 'white',
             border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            cursor: 'pointer',
+            textDecoration: 'none',
+          }}
+        >
+          GitHub 프로젝트 보기
+        </a>
+        <a
+          href={repoIssuesUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            padding: '10px 24px',
+            background: 'white',
+            color: '#111827',
+            border: '1px solid #e5e7eb',
             borderRadius: '8px',
             fontSize: '14px',
             cursor: 'pointer',
