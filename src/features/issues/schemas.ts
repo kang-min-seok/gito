@@ -27,3 +27,25 @@ export const GenerateIssuesSchema = z.object({
 export const GenerateIssuesRequestSchema = z.object({
   planning: GeneratePlanningSchema,
 });
+
+const ProjectInfoSchema = z.object({
+  projectId: z.string(),
+  issueTypeFieldId: z.string(),
+  storyOptionId: z.string(),
+  taskOptionId: z.string(),
+  epicFieldId: z.string(),
+  epicOptions: z.array(z.object({ name: z.string(), id: z.string() })),
+});
+
+export const CreateIssuesRequestSchema = z.object({
+  owner: z.string(),
+  repo: z.string(),
+  issues: GenerateIssuesSchema,
+  project: ProjectInfoSchema.optional(),
+});
+
+export const SetupProjectRequestSchema = z.object({
+  owner: z.string(),
+  projectTitle: z.string(),
+  epicNames: z.array(z.string()),
+});
