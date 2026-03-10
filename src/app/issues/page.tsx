@@ -65,43 +65,24 @@ export default function IssuesPage() {
     setEditingEpicIndex(null);
   };
 
-  if (!data) return <div style={{ padding: '40px' }}>로딩 중...</div>;
+  if (!data) return <div className="p-10">로딩 중...</div>;
 
   return (
-    <main style={{ padding: '40px 24px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>이슈 목록</h1>
-      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '32px' }}>
+    <main className="page-container">
+      <h1 className="text-2xl font-bold mb-2">이슈 목록</h1>
+      <p className="text-sm text-gray-500 mb-8">
         총 {data.issues.length}개의 Epic으로 구성되었습니다. 각 항목을 클릭하면 상세 내용을 볼 수
         있습니다.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div className="flex flex-col gap-8">
         {data.issues.map((group, i) => (
           <section key={i}>
             {/* Epic 헤더 */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '12px',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  background: '#dbeafe',
-                  color: '#1d4ed8',
-                  flexShrink: 0,
-                }}
-              >
-                Epic
-              </span>
+            <div className="flex items-center gap-2.5 mb-3">
+              <span className="badge badge-epic">Epic</span>
               {editingEpicIndex === i ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <div className="flex items-center gap-2 flex-1">
                   <input
                     value={epicDraft}
                     onChange={(e) => setEpicDraft(e.target.value)}
@@ -110,65 +91,25 @@ export default function IssuesPage() {
                       if (e.key === 'Escape') handleEpicCancel();
                     }}
                     autoFocus
-                    style={{
-                      flex: 1,
-                      fontSize: '16px',
-                      fontWeight: '700',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      outline: 'none',
-                      color: '#111827',
-                    }}
+                    className="flex-1 text-base font-bold border border-gray-300 rounded-md px-2 py-1 outline-none text-gray-900"
                   />
                   <button
                     onClick={handleEpicCancel}
-                    style={{
-                      padding: '4px 12px',
-                      background: 'white',
-                      color: '#111827',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
+                    className="py-1 px-3 bg-white text-gray-900 border border-gray-200 rounded-md text-[13px] cursor-pointer"
                   >
                     취소
                   </button>
                   <button
                     onClick={() => handleEpicSave(i)}
-                    style={{
-                      padding: '4px 12px',
-                      background: '#111827',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
+                    className="py-1 px-3 bg-gray-900 text-white border-0 rounded-md text-[13px] cursor-pointer"
                   >
                     저장
                   </button>
                 </div>
               ) : (
                 <>
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#111827', flex: 1 }}>
-                    {group.epic}
-                  </span>
-                  <button
-                    onClick={() => handleEpicEditStart(i, group.epic)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#9ca3af',
-                      fontSize: '12px',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#374151')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
-                  >
+                  <span className="text-base font-bold text-gray-900 flex-1">{group.epic}</span>
+                  <button onClick={() => handleEpicEditStart(i, group.epic)} className="btn-ghost">
                     수정
                   </button>
                 </>
@@ -189,47 +130,14 @@ export default function IssuesPage() {
         ))}
       </div>
 
-      <div style={{ marginTop: '40px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => router.back()}
-          style={{
-            padding: '10px 24px',
-            background: '#111827',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}
-        >
+      <div className="mt-10 flex gap-3 flex-wrap">
+        <button onClick={() => router.back()} className="btn-primary">
           기획서로 돌아가기
         </button>
-        <button
-          onClick={() => router.push('/repo-select')}
-          style={{
-            padding: '10px 24px',
-            background: '#2563eb',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => router.push('/repo-select')} className="btn-blue">
           레포에 이슈 등록하기
         </button>
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            padding: '10px 24px',
-            background: 'white',
-            color: '#111827',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => router.push('/')} className="btn-secondary">
           새 아이디어 입력하기
         </button>
       </div>

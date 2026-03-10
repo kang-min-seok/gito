@@ -24,3 +24,51 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply px-6 py-2.5 bg-gray-900 text-white border-0 rounded-lg text-sm cursor-pointer;
+  }
+  .btn-secondary {
+    @apply px-6 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm cursor-pointer;
+  }
+  .btn-blue {
+    @apply px-6 py-2.5 bg-blue-600 text-white border-0 rounded-lg text-sm cursor-pointer;
+  }
+  .btn-ghost {
+    @apply bg-transparent border-0 cursor-pointer text-gray-400 hover:text-gray-700 text-xs px-1.5 py-0.5 rounded;
+  }
+
+  /* Badges */
+  .badge {
+    @apply text-[11px] font-bold px-2 py-0.5 rounded shrink-0;
+  }
+  .badge-epic {
+    @apply bg-blue-100 text-blue-700;
+  }
+  .badge-story {
+    @apply bg-green-100 text-green-700;
+  }
+  .badge-task {
+    @apply bg-yellow-100 text-yellow-700;
+  }
+  .badge-default {
+    @apply bg-gray-100 text-gray-700;
+  }
+
+  /* Card */
+  .card {
+    @apply border border-gray-200 rounded-lg bg-white overflow-hidden;
+  }
+
+  /* Section label */
+  .section-label {
+    @apply text-[11px] font-bold text-gray-400 uppercase tracking-[0.05em];
+  }
+
+  /* Page container */
+  .page-container {
+    @apply px-6 py-10 max-w-[800px] mx-auto;
+  }
+}

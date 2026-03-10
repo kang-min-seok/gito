@@ -6,9 +6,9 @@ const TYPE_LABEL: Record<string, string> = {
   task: 'Task',
 };
 
-const TYPE_COLOR: Record<string, { background: string; color: string }> = {
-  story: { background: '#dcfce7', color: '#15803d' },
-  task: { background: '#fef9c3', color: '#a16207' },
+const TYPE_BADGE_CLASS: Record<string, string> = {
+  story: 'badge-story',
+  task: 'badge-task',
 };
 
 export default function IssueCard({
@@ -25,7 +25,7 @@ export default function IssueCard({
   const [titleDraft, setTitleDraft] = useState(issue.title);
   const [bodyDraft, setBodyDraft] = useState(issue.body);
 
-  const badge = TYPE_COLOR[issue.type] ?? { background: '#f3f4f6', color: '#374151' };
+  const badgeClass = `badge ${TYPE_BADGE_CLASS[issue.type] ?? 'badge-default'}`;
 
   const handleEditStart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -54,92 +54,35 @@ export default function IssueCard({
   };
 
   return (
-    <div style={{ marginLeft: `${indent}px` }}>
-      <div
-        style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px',
-          marginBottom: '8px',
-          background: 'white',
-          overflow: 'hidden',
-        }}
-      >
+    <div className={indent > 0 ? 'ml-6' : ''}>
+      <div className="card mb-2">
         {/* 헤더 */}
         {isEditing ? (
-          <div
-            style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  flexShrink: 0,
-                  ...badge,
-                }}
-              >
-                {TYPE_LABEL[issue.type] ?? issue.type}
-              </span>
+          <div className="px-4 py-3 flex flex-col gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className={badgeClass}>{TYPE_LABEL[issue.type] ?? issue.type}</span>
               <input
                 value={titleDraft}
                 onChange={(e) => setTitleDraft(e.target.value)}
-                style={{
-                  flex: 1,
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  outline: 'none',
-                }}
+                className="flex-1 text-sm font-semibold border border-gray-300 rounded-md px-2 py-1 outline-none"
               />
             </div>
             <textarea
               value={bodyDraft}
               onChange={(e) => setBodyDraft(e.target.value)}
               rows={6}
-              style={{
-                width: '100%',
-                fontSize: '13px',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                padding: '8px',
-                resize: 'vertical',
-                lineHeight: '1.6',
-                outline: 'none',
-                boxSizing: 'border-box',
-                fontFamily: 'inherit',
-              }}
+              className="w-full text-[13px] text-gray-700 border border-gray-300 rounded-md p-2 resize-y leading-relaxed outline-none box-border font-[inherit]"
             />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={handleCancel}
-                style={{
-                  padding: '6px 16px',
-                  background: 'white',
-                  color: '#111827',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                }}
+                className="py-1.5 px-4 bg-white text-gray-900 border border-gray-200 rounded-md text-[13px] cursor-pointer"
               >
                 취소
               </button>
               <button
                 onClick={handleSave}
-                style={{
-                  padding: '6px 16px',
-                  background: '#111827',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                }}
+                className="py-1.5 px-4 bg-gray-900 text-white border-0 rounded-md text-[13px] cursor-pointer"
               >
                 저장
               </button>
@@ -147,64 +90,21 @@ export default function IssueCard({
           </div>
         ) : (
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '12px 16px',
-              cursor: 'pointer',
-            }}
+            className="flex items-center gap-2.5 px-4 py-3 cursor-pointer"
             onClick={() => setExpanded((prev) => !prev)}
           >
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: '700',
-                padding: '2px 8px',
-                borderRadius: '4px',
-                flexShrink: 0,
-                ...badge,
-              }}
-            >
-              {TYPE_LABEL[issue.type] ?? issue.type}
-            </span>
-            <span style={{ fontSize: '14px', fontWeight: '600', flex: 1 }}>{issue.title}</span>
-            <button
-              onClick={handleEditStart}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#9ca3af',
-                fontSize: '12px',
-                flexShrink: 0,
-                padding: '2px 6px',
-                borderRadius: '4px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#374151')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#9ca3af')}
-            >
+            <span className={badgeClass}>{TYPE_LABEL[issue.type] ?? issue.type}</span>
+            <span className="text-sm font-semibold flex-1">{issue.title}</span>
+            <button onClick={handleEditStart} className="btn-ghost shrink-0">
               수정
             </button>
-            <span style={{ fontSize: '12px', color: '#9ca3af', flexShrink: 0 }}>
-              {expanded ? '▲' : '▼'}
-            </span>
+            <span className="text-xs text-gray-400 shrink-0">{expanded ? '▲' : '▼'}</span>
           </div>
         )}
 
         {/* body */}
         {!isEditing && expanded && (
-          <div
-            style={{
-              padding: '12px 16px',
-              borderTop: '1px solid #f3f4f6',
-              background: '#f9fafb',
-              fontSize: '13px',
-              color: '#374151',
-              whiteSpace: 'pre-wrap',
-              lineHeight: '1.6',
-            }}
-          >
+          <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 text-[13px] text-gray-700 whitespace-pre-wrap leading-relaxed">
             {issue.body}
           </div>
         )}
