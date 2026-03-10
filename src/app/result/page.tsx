@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ISSUES_STORAGE_KEY, SELECTED_REPO_KEY } from '@/constants/planning';
 import { GenerateIssuesSchema } from '@/features/issues/schemas';
 import type { CreateIssuesResult, GitHubRepoItem, SetupProjectResult } from '@/types/github';
+import Button from '@/components/Button';
 
 type PageState =
   | { status: 'creating_project' }
@@ -126,12 +127,10 @@ export default function ResultPage() {
         <h1 className="text-2xl font-bold mb-2 text-red-600">오류가 발생했습니다</h1>
         <p className="text-sm text-gray-500 mb-6">{pageState.message}</p>
         <div className="flex gap-3">
-          <button onClick={() => router.back()} className="btn-primary">
-            돌아가기
-          </button>
-          <button onClick={() => router.push('/')} className="btn-secondary">
+          <Button onClick={() => router.back()}>돌아가기</Button>
+          <Button variant="secondary" onClick={() => router.push('/')}>
             처음으로
-          </button>
+          </Button>
         </div>
       </main>
     );
@@ -192,25 +191,15 @@ export default function ResultPage() {
       )}
 
       <div className="flex gap-3 flex-wrap">
-        <a
-          href={projectUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-primary no-underline"
-        >
+        <Button href={projectUrl} target="_blank" rel="noopener noreferrer">
           GitHub 프로젝트 보기
-        </a>
-        <a
-          href={repoIssuesUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-secondary no-underline"
-        >
+        </Button>
+        <Button variant="secondary" href={repoIssuesUrl} target="_blank" rel="noopener noreferrer">
           GitHub 이슈 목록 보기
-        </a>
-        <button onClick={() => router.push('/')} className="btn-secondary">
+        </Button>
+        <Button variant="secondary" onClick={() => router.push('/')}>
           새 아이디어 입력하기
-        </button>
+        </Button>
       </div>
     </main>
   );

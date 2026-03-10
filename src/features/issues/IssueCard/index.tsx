@@ -1,5 +1,6 @@
 import { GeneratedIssue } from '@/types/github';
 import { useState } from 'react';
+import Button from '@/components/Button';
 
 const TYPE_LABEL: Record<string, string> = {
   story: 'Story',
@@ -74,18 +75,12 @@ export default function IssueCard({
               className="w-full text-[13px] text-gray-700 border border-gray-300 rounded-md p-2 resize-y leading-relaxed outline-none box-border font-[inherit]"
             />
             <div className="flex gap-2 justify-end">
-              <button
-                onClick={handleCancel}
-                className="py-1.5 px-4 bg-white text-gray-900 border border-gray-200 rounded-md text-[13px] cursor-pointer"
-              >
+              <Button variant="secondary" size="sm" onClick={handleCancel}>
                 취소
-              </button>
-              <button
-                onClick={handleSave}
-                className="py-1.5 px-4 bg-gray-900 text-white border-0 rounded-md text-[13px] cursor-pointer"
-              >
+              </Button>
+              <Button size="sm" onClick={handleSave}>
                 저장
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -95,9 +90,9 @@ export default function IssueCard({
           >
             <span className={badgeClass}>{TYPE_LABEL[issue.type] ?? issue.type}</span>
             <span className="text-sm font-semibold flex-1">{issue.title}</span>
-            <button onClick={handleEditStart} className="btn-ghost shrink-0">
+            <Button variant="ghost" size="sm" onClick={handleEditStart} className="shrink-0">
               수정
-            </button>
+            </Button>
             <span className="text-xs text-gray-400 shrink-0">{expanded ? '▲' : '▼'}</span>
           </div>
         )}

@@ -7,6 +7,7 @@ import type { GenerateIssuesResult, GeneratedIssue } from '@/types/github';
 import { GenerateIssuesSchema } from '@/features/issues/schemas';
 import IssueCard from '@/features/issues/IssueCard';
 import { saveIssuesToStorage } from '@/features/issues/utils/updateIssuesStorage';
+import Button from '@/components/Button';
 
 export default function IssuesPage() {
   const router = useRouter();
@@ -93,25 +94,23 @@ export default function IssuesPage() {
                     autoFocus
                     className="flex-1 text-base font-bold border border-gray-300 rounded-md px-2 py-1 outline-none text-gray-900"
                   />
-                  <button
-                    onClick={handleEpicCancel}
-                    className="py-1 px-3 bg-white text-gray-900 border border-gray-200 rounded-md text-[13px] cursor-pointer"
-                  >
+                  <Button variant="secondary" size="sm" onClick={handleEpicCancel}>
                     취소
-                  </button>
-                  <button
-                    onClick={() => handleEpicSave(i)}
-                    className="py-1 px-3 bg-gray-900 text-white border-0 rounded-md text-[13px] cursor-pointer"
-                  >
+                  </Button>
+                  <Button size="sm" onClick={() => handleEpicSave(i)}>
                     저장
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <>
                   <span className="text-base font-bold text-gray-900 flex-1">{group.epic}</span>
-                  <button onClick={() => handleEpicEditStart(i, group.epic)} className="btn-ghost">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEpicEditStart(i, group.epic)}
+                  >
                     수정
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -131,15 +130,11 @@ export default function IssuesPage() {
       </div>
 
       <div className="mt-10 flex gap-3 flex-wrap">
-        <button onClick={() => router.back()} className="btn-primary">
-          기획서로 돌아가기
-        </button>
-        <button onClick={() => router.push('/repo-select')} className="btn-blue">
-          레포에 이슈 등록하기
-        </button>
-        <button onClick={() => router.push('/')} className="btn-secondary">
+        <Button onClick={() => router.back()}>기획서로 돌아가기</Button>
+        <Button onClick={() => router.push('/repo-select')}>레포에 이슈 등록하기</Button>
+        <Button variant="secondary" onClick={() => router.push('/')}>
           새 아이디어 입력하기
-        </button>
+        </Button>
       </div>
     </main>
   );

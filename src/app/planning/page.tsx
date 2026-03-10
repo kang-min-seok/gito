@@ -6,6 +6,7 @@ import { PLANNING_STORAGE_KEY, ISSUES_STORAGE_KEY } from '@/constants/planning';
 import type { PlanningResult } from '@/types/planning';
 import type { GenerateIssuesResult } from '@/types/github';
 import { GeneratePlanningSchema } from '@/features/planning/schemas';
+import Button from '@/components/Button';
 
 export default function PlanningPage() {
   const router = useRouter();
@@ -130,7 +131,7 @@ export default function PlanningPage() {
       {generateError && <p className="text-red-500 text-sm mb-3">{generateError}</p>}
 
       <div className="flex gap-3 flex-wrap">
-        <button
+        <Button
           onClick={async () => {
             setIsGenerating(true);
             setGenerateError(null);
@@ -155,18 +156,13 @@ export default function PlanningPage() {
             }
           }}
           disabled={isGenerating}
-          className={`px-6 py-2.5 text-white border-0 rounded-lg text-sm ${isGenerating ? 'bg-gray-500 cursor-not-allowed' : 'bg-blue-600 cursor-pointer'}`}
         >
           {isGenerating ? '이슈 생성 중...' : '이슈 생성하기'}
-        </button>
+        </Button>
 
-        <button
-          onClick={() => router.push('/')}
-          disabled={isGenerating}
-          className={`px-6 py-2.5 bg-gray-900 text-white border-0 rounded-lg text-sm ${isGenerating ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-        >
+        <Button onClick={() => router.push('/')} disabled={isGenerating} variant="secondary">
           새 아이디어 입력하기
-        </button>
+        </Button>
       </div>
     </main>
   );

@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --color-primary: #6762a6;
+  --color-primary-hover: #574f91;
+  --color-primary-active: #4f4680;
+  --color-primary-disabled: #b0aed3;
 }
 
 @theme inline {
@@ -26,20 +30,6 @@ body {
 }
 
 @layer components {
-  /* Buttons */
-  .btn-primary {
-    @apply px-6 py-2.5 bg-gray-900 text-white border-0 rounded-lg text-sm cursor-pointer;
-  }
-  .btn-secondary {
-    @apply px-6 py-2.5 bg-white text-gray-900 border border-gray-200 rounded-lg text-sm cursor-pointer;
-  }
-  .btn-blue {
-    @apply px-6 py-2.5 bg-blue-600 text-white border-0 rounded-lg text-sm cursor-pointer;
-  }
-  .btn-ghost {
-    @apply bg-transparent border-0 cursor-pointer text-gray-400 hover:text-gray-700 text-xs px-1.5 py-0.5 rounded;
-  }
-
   /* Badges */
   .badge {
     @apply text-[11px] font-bold px-2 py-0.5 rounded shrink-0;

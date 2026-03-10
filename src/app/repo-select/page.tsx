@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { GitHubRepoItem, GitHubOwnerInfo } from '@/types/github';
 import { GITHUB_CACHE_KEY } from '@/constants/github';
 import { SELECTED_REPO_KEY } from '@/constants/planning';
+import Button from '@/components/Button';
 
 type RepoFetchState =
   | { status: 'loading' }
@@ -151,12 +152,9 @@ export default function RepoSelectPage() {
         <h1 className="text-2xl font-bold">레포지토리 선택</h1>
         {!isLoading && repoState.status === 'success' && (
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              className="py-1.5 px-3.5 text-[13px] text-gray-700 bg-white border border-gray-200 rounded-md cursor-pointer"
-            >
+            <Button variant="secondary" size="sm" onClick={handleRefresh}>
               새로고침
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -268,16 +266,12 @@ export default function RepoSelectPage() {
       )}
 
       <div className="flex gap-3 flex-wrap">
-        <button onClick={() => router.back()} className="btn-secondary">
+        <Button variant="secondary" onClick={() => router.back()}>
           이슈 목록으로 돌아가기
-        </button>
-        <button
-          disabled={!selectedRepo}
-          onClick={handleCreateIssues}
-          className={`px-6 py-2.5 text-sm border-0 rounded-lg ${selectedRepo ? 'bg-gray-900 text-white cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-        >
+        </Button>
+        <Button disabled={!selectedRepo} onClick={handleCreateIssues}>
           이슈 생성하기
-        </button>
+        </Button>
       </div>
     </main>
   );

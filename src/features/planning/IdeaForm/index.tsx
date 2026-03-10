@@ -8,6 +8,7 @@ import {
   QUESTION_RETRY_DELAY_MS,
 } from '@/constants/planning';
 import type { GeneratePlanningResult, QuestionItem, AnswerItem } from '@/types/planning';
+import Button from '@/components/Button';
 
 type FormState =
   | { status: 'idle' }
@@ -142,13 +143,9 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
         className="w-full max-w-150 p-3 border border-gray-300 rounded-lg text-sm resize-y"
       />
       <br />
-      <button
-        onClick={handleSubmit}
-        disabled={isDisabled}
-        className={`mt-3 px-6 py-2.5 text-white border-0 rounded-lg text-sm ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 cursor-pointer'}`}
-      >
+      <Button onClick={handleSubmit} disabled={isDisabled} className="mt-3">
         {isLoading ? '기획서 생성 중...' : '기획서 생성하기'}
-      </button>
+      </Button>
 
       {formState.status === 'error' && (
         <p className="mt-4 text-red-500 text-sm">{formState.message}</p>
@@ -209,9 +206,9 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
               )}
             </div>
           ))}
-          <button onClick={handleAnswerSubmit} disabled={isLoading} className="btn-primary">
+          <Button onClick={handleAnswerSubmit} disabled={isLoading}>
             기획서 생성하기
-          </button>
+          </Button>
         </div>
       )}
     </main>
