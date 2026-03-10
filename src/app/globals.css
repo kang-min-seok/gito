@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --color-primary: #6762a6;
+  --color-primary-hover: #574f91;
+  --color-primary-active: #4f4680;
+  --color-primary-disabled: #b0aed3;
 }
 
 @theme inline {
@@ -23,4 +27,38 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  /* Badges */
+  .badge {
+    @apply text-[11px] font-bold px-2 py-0.5 rounded shrink-0;
+  }
+  .badge-epic {
+    @apply bg-blue-100 text-blue-700;
+  }
+  .badge-story {
+    @apply bg-green-100 text-green-700;
+  }
+  .badge-task {
+    @apply bg-yellow-100 text-yellow-700;
+  }
+  .badge-default {
+    @apply bg-gray-100 text-gray-700;
+  }
+
+  /* Card */
+  .card {
+    @apply border border-gray-200 rounded-lg bg-white overflow-hidden;
+  }
+
+  /* Section label */
+  .section-label {
+    @apply text-[11px] font-bold text-gray-400 uppercase tracking-[0.05em];
+  }
+
+  /* Page container */
+  .page-container {
+    @apply px-6 py-10 max-w-[800px] mx-auto;
+  }
 }

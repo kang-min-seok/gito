@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { GitHubRepoItem, GitHubOwnerInfo } from '@/types/github';
 import { GITHUB_CACHE_KEY } from '@/constants/github';
 import { SELECTED_REPO_KEY } from '@/constants/planning';
+import Button from '@/components/Button';
 
 type RepoFetchState =
   | { status: 'loading' }
@@ -146,81 +147,33 @@ export default function RepoSelectPage() {
   const isLoading = repoState.status === 'loading' || ownerState.status === 'loading';
 
   return (
-    <main style={{ padding: '40px 24px', maxWidth: '960px', margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          marginBottom: '8px',
-        }}
-      >
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>레포지토리 선택</h1>
+    <main className="px-6 py-10 max-w-[960px] mx-auto">
+      <div className="flex items-start justify-between mb-2">
+        <h1 className="text-2xl font-bold">레포지토리 선택</h1>
         {!isLoading && repoState.status === 'success' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={handleRefresh}
-              style={{
-                padding: '6px 14px',
-                fontSize: '13px',
-                color: '#374151',
-                background: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                cursor: 'pointer',
-              }}
-            >
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={handleRefresh}>
               새로고침
-            </button>
+            </Button>
           </div>
         )}
       </div>
-      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '32px' }}>
-        이슈를 등록할 GitHub 레포지토리를 선택하세요.
-      </p>
+      <p className="text-sm text-gray-500 mb-8">이슈를 등록할 GitHub 레포지토리를 선택하세요.</p>
 
-      {isLoading && <p style={{ color: '#6b7280', fontSize: '14px' }}>불러오는 중...</p>}
+      {isLoading && <p className="text-gray-500 text-sm">불러오는 중...</p>}
 
       {repoState.status === 'error' && (
-        <div
-          style={{
-            padding: '16px',
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            color: '#dc2626',
-            fontSize: '14px',
-          }}
-        >
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
           {repoState.message}
         </div>
       )}
 
       {!isLoading && repoState.status === 'success' && (
         <>
-          <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
+          <div className="flex gap-5 mb-6">
             {/* 사이드바: 개인 + 조직 목록 + 권한 설정 */}
-            <div
-              style={{
-                width: '180px',
-                flexShrink: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-              }}
-            >
-              <p
-                style={{
-                  fontSize: '11px',
-                  fontWeight: '700',
-                  color: '#9ca3af',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  marginBottom: '8px',
-                }}
-              >
-                계정 / 조직
-              </p>
+            <div className="w-[180px] shrink-0 flex flex-col gap-1">
+              <p className="section-label mb-2">계정 / 조직</p>
 
               {ownerState.status === 'success' && (
                 <>
@@ -232,16 +185,7 @@ export default function RepoSelectPage() {
                   />
 
                   {ownerState.info.orgs.length > 0 && (
-                    <div
-                      style={{
-                        borderTop: '1px solid #f3f4f6',
-                        marginTop: '8px',
-                        paddingTop: '8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
-                      }}
-                    >
+                    <div className="border-t border-gray-100 mt-2 pt-2 flex flex-col gap-1">
                       {ownerState.info.orgs.map((org) => (
                         <OwnerButton
                           key={org.login}
@@ -257,35 +201,13 @@ export default function RepoSelectPage() {
               )}
 
               {ownerState.status === 'error' && (
-                <p style={{ fontSize: '12px', color: '#dc2626' }}>
-                  조직 목록을 불러오지 못했습니다.
-                </p>
+                <p className="text-xs text-red-600">조직 목록을 불러오지 못했습니다.</p>
               )}
 
               {/* 조직 권한 설정 섹션 */}
-              <div
-                style={{
-                  borderTop: '1px solid #f3f4f6',
-                  marginTop: '12px',
-                  paddingTop: '12px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '6px',
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: '700',
-                    color: '#9ca3af',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    marginBottom: '4px',
-                  }}
-                >
-                  조직 권한
-                </p>
-                <p style={{ fontSize: '11px', color: '#9ca3af', lineHeight: '1.5' }}>
+              <div className="border-t border-gray-100 mt-3 pt-3 flex flex-col gap-1.5">
+                <p className="section-label mb-1">조직 권한</p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
                   목록에 없는 조직이 있다면 권한을 설정하세요.
                 </p>
                 {appSettingsUrl && (
@@ -293,18 +215,7 @@ export default function RepoSelectPage() {
                     href={appSettingsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: 'block',
-                      padding: '7px 10px',
-                      fontSize: '12px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '6px',
-                      textDecoration: 'none',
-                      textAlign: 'center',
-                      background: 'white',
-                    }}
+                    className="block py-[7px] px-2.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-md no-underline text-center bg-white"
                   >
                     GitHub에서 권한 설정 →
                   </a>
@@ -313,90 +224,27 @@ export default function RepoSelectPage() {
             </div>
 
             {/* 레포 목록 */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               {filteredRepos.length === 0 ? (
-                <p style={{ fontSize: '14px', color: '#9ca3af', paddingTop: '8px' }}>
-                  레포지토리가 없습니다.
-                </p>
+                <p className="text-sm text-gray-400 pt-2">레포지토리가 없습니다.</p>
               ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    maxHeight: '480px',
-                    overflowY: 'auto',
-                    paddingRight: '4px',
-                  }}
-                >
+                <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto pr-1">
                   {filteredRepos.map((repo) => {
                     const isSelected = selectedRepo?.fullName === repo.fullName;
                     return (
                       <button
                         key={repo.fullName}
                         onClick={() => setSelectedRepo(isSelected ? null : repo)}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'flex-start',
-                          gap: '4px',
-                          padding: '14px 16px',
-                          border: isSelected ? '2px solid #111827' : '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          background: isSelected ? '#f9fafb' : 'white',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          width: '100%',
-                        }}
+                        className={`flex flex-col items-start gap-1 px-4 py-3.5 rounded-lg cursor-pointer text-left w-full ${isSelected ? 'border-2 border-gray-900 bg-gray-50' : 'border border-gray-200 bg-white'}`}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            width: '100%',
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              color: '#111827',
-                              flex: 1,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                        <div className="flex items-center gap-2 w-full">
+                          <span className="text-sm font-semibold text-gray-900 flex-1 truncate">
                             {repo.name}
                           </span>
-                          {repo.isPrivate && (
-                            <span
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: '600',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                background: '#f3f4f6',
-                                color: '#6b7280',
-                                flexShrink: 0,
-                              }}
-                            >
-                              Private
-                            </span>
-                          )}
+                          {repo.isPrivate && <span className="badge badge-default">Private</span>}
                         </div>
                         {repo.description && (
-                          <span
-                            style={{
-                              fontSize: '13px',
-                              color: '#6b7280',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              width: '100%',
-                            }}
-                          >
+                          <span className="text-[13px] text-gray-500 truncate w-full">
                             {repo.description}
                           </span>
                         )}
@@ -409,56 +257,21 @@ export default function RepoSelectPage() {
           </div>
 
           {selectedRepo && (
-            <div
-              style={{
-                padding: '16px',
-                background: '#f9fafb',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                marginBottom: '24px',
-              }}
-            >
-              <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
-                선택된 레포지토리
-              </p>
-              <p style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
-                {selectedRepo.fullName}
-              </p>
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-6">
+              <p className="text-[13px] text-gray-500 mb-1">선택된 레포지토리</p>
+              <p className="text-[15px] font-semibold text-gray-900">{selectedRepo.fullName}</p>
             </div>
           )}
         </>
       )}
 
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => router.back()}
-          style={{
-            padding: '10px 24px',
-            background: 'white',
-            color: '#111827',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            fontSize: '14px',
-            cursor: 'pointer',
-          }}
-        >
+      <div className="flex gap-3 flex-wrap">
+        <Button variant="secondary" onClick={() => router.back()}>
           이슈 목록으로 돌아가기
-        </button>
-        <button
-          disabled={!selectedRepo}
-          onClick={handleCreateIssues}
-          style={{
-            padding: '10px 24px',
-            background: selectedRepo ? '#111827' : '#e5e7eb',
-            color: selectedRepo ? 'white' : '#9ca3af',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            cursor: selectedRepo ? 'pointer' : 'not-allowed',
-          }}
-        >
+        </Button>
+        <Button disabled={!selectedRepo} onClick={handleCreateIssues}>
           이슈 생성하기
-        </button>
+        </Button>
       </div>
     </main>
   );
@@ -478,39 +291,14 @@ function OwnerButton({
   return (
     <button
       onClick={onClick}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '2px',
-        padding: '8px 10px',
-        border: 'none',
-        borderRadius: '6px',
-        background: isSelected ? '#111827' : 'transparent',
-        cursor: 'pointer',
-        textAlign: 'left',
-        width: '100%',
-      }}
+      className={`flex flex-col items-start gap-0.5 px-2.5 py-2 border-0 rounded-md cursor-pointer text-left w-full ${isSelected ? 'bg-gray-900' : 'bg-transparent'}`}
     >
       <span
-        style={{
-          fontSize: '13px',
-          fontWeight: '600',
-          color: isSelected ? 'white' : '#374151',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          width: '100%',
-        }}
+        className={`text-[13px] font-semibold truncate w-full ${isSelected ? 'text-white' : 'text-gray-700'}`}
       >
         {label}
       </span>
-      <span
-        style={{
-          fontSize: '11px',
-          color: isSelected ? '#d1d5db' : '#9ca3af',
-        }}
-      >
+      <span className={`text-[11px] ${isSelected ? 'text-gray-300' : 'text-gray-400'}`}>
         {sublabel}
       </span>
     </button>

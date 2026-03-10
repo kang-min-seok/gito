@@ -7,29 +7,21 @@ export default async function Header() {
   const session = await getServerSession(authOptions);
 
   return (
-    <header
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 24px',
-        borderBottom: '1px solid #e5e7eb',
-      }}
-    >
-      <span style={{ fontWeight: 'bold', fontSize: '16px' }}>Gito</span>
+    <header className="flex justify-between items-center px-6 py-3 border-b border-gray-200">
+      <span className="font-bold text-base">Gito</span>
 
       {session?.user && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="flex items-center gap-3">
           {session.user.image && (
             <Image
               src={session.user.image}
               alt={session.user.name ?? 'user avatar'}
               width={32}
               height={32}
-              style={{ borderRadius: '50%' }}
+              className="rounded-full"
             />
           )}
-          <span style={{ fontSize: '14px' }}>{session.user.name}</span>
+          <span className="text-sm">{session.user.name}</span>
           <LogoutButton />
         </div>
       )}

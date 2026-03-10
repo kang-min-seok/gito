@@ -11,20 +11,9 @@ export default async function Home() {
   }
 
   return (
-    <main
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '80vh',
-        gap: '16px',
-        textAlign: 'center',
-        padding: '24px',
-      }}
-    >
-      <h1 style={{ fontSize: '28px', fontWeight: 'bold' }}>Gito</h1>
-      <p style={{ color: '#6b7280', maxWidth: '400px', lineHeight: '1.6' }}>
+    <main className="flex flex-col items-center justify-center min-h-[80vh] gap-4 text-center px-6">
+      <h1 className="text-[28px] font-bold">Gito</h1>
+      <p className="text-gray-500 max-w-[400px] leading-relaxed">
         아이디어를 입력하면 AI가 기획서를 만들고
         <br />
         GitHub 이슈와 프로젝트까지 자동으로 세팅해드려요.

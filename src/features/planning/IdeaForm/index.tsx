@@ -8,6 +8,7 @@ import {
   QUESTION_RETRY_DELAY_MS,
 } from '@/constants/planning';
 import type { GeneratePlanningResult, QuestionItem, AnswerItem } from '@/types/planning';
+import Button from '@/components/Button';
 
 type FormState =
   | { status: 'idle' }
@@ -123,13 +124,12 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
   }
 
   const isLoading = formState.status === 'loading';
+  const isDisabled = isLoading || idea.trim().length === 0;
 
   return (
-    <main style={{ padding: '40px 24px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-        안녕하세요, {userName}님
-      </h1>
-      <p style={{ color: '#6b7280', marginBottom: '32px' }}>
+    <main className="px-6 py-10">
+      <h1 className="text-2xl font-bold mb-2">안녕하세요, {userName}님</h1>
+      <p className="text-gray-500 mb-8">
         아이디어를 입력하면 기획서와 GitHub 이슈를 자동으로 만들어드려요.
       </p>
 
@@ -140,61 +140,31 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
         value={idea}
         onChange={(e) => setIdea(e.target.value)}
         disabled={isLoading}
-        style={{
-          width: '100%',
-          maxWidth: '600px',
-          padding: '12px',
-          border: '1px solid #d1d5db',
-          borderRadius: '8px',
-          fontSize: '14px',
-          resize: 'vertical',
-        }}
+        className="w-full max-w-150 p-3 border border-gray-300 rounded-lg text-sm resize-y"
       />
       <br />
-      <button
-        onClick={handleSubmit}
-        disabled={isLoading || idea.trim().length === 0}
-        style={{
-          marginTop: '12px',
-          padding: '10px 24px',
-          background: isLoading || idea.trim().length === 0 ? '#9ca3af' : '#111827',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '14px',
-          cursor: isLoading || idea.trim().length === 0 ? 'not-allowed' : 'pointer',
-        }}
-      >
+      <Button onClick={handleSubmit} disabled={isDisabled} className="mt-3">
         {isLoading ? '기획서 생성 중...' : '기획서 생성하기'}
-      </button>
+      </Button>
 
       {formState.status === 'error' && (
-        <p style={{ marginTop: '16px', color: '#ef4444', fontSize: '14px' }}>{formState.message}</p>
+        <p className="mt-4 text-red-500 text-sm">{formState.message}</p>
       )}
 
       {formState.status === 'question' && (
-        <div style={{ marginTop: '32px', maxWidth: '600px' }}>
-          <p style={{ fontWeight: 'bold', marginBottom: '16px' }}>
+        <div className="mt-8 max-w-150">
+          <p className="font-bold mb-4">
             조금 더 구체적인 정보가 필요해요. 아래 질문에 답해주세요.
           </p>
           {formState.questions.map((q, i) => (
-            <div key={i} style={{ marginBottom: '20px' }}>
-              <p style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+            <div key={i} className="mb-5">
+              <p className="text-sm font-medium mb-2">
                 {i + 1}. {q.question}
               </p>
               {q.options && q.options.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div className="flex flex-col gap-1.5">
                   {q.options.map((opt) => (
-                    <label
-                      key={opt}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                      }}
-                    >
+                    <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
                       <input
                         type="radio"
                         name={`question-${i}`}
@@ -205,15 +175,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                       {opt}
                     </label>
                   ))}
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                    }}
-                  >
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="radio"
                       name={`question-${i}`}
@@ -229,12 +191,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                       value={formState.answers[i]}
                       onChange={(e) => updateCustomAnswer(i, e.target.value)}
                       placeholder="직접 입력..."
-                      style={{
-                        padding: '8px 10px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                      }}
+                      className="px-2.5 py-2 border border-gray-300 rounded-md text-sm"
                     />
                   )}
                 </div>
@@ -244,32 +201,14 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                   value={formState.answers[i]}
                   onChange={(e) => updateCustomAnswer(i, e.target.value)}
                   placeholder="답변을 입력하세요..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                  }}
+                  className="w-full px-2.5 py-2 border border-gray-300 rounded-md text-sm"
                 />
               )}
             </div>
           ))}
-          <button
-            onClick={handleAnswerSubmit}
-            disabled={isLoading}
-            style={{
-              padding: '10px 24px',
-              background: '#111827',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              cursor: 'pointer',
-            }}
-          >
+          <Button onClick={handleAnswerSubmit} disabled={isLoading}>
             기획서 생성하기
-          </button>
+          </Button>
         </div>
       )}
     </main>
