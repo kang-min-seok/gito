@@ -65,7 +65,7 @@ export default function IssueCard({
               <input
                 value={titleDraft}
                 onChange={(e) => setTitleDraft(e.target.value)}
-                className="flex-1 text-sm font-semibold border border-gray-300 rounded-md px-2 py-1 outline-none"
+                className="flex-1 text-sm font-semibold border border-gray-300 rounded-md px-2 py-1 outline-none text-black"
               />
             </div>
             <textarea
@@ -89,7 +89,7 @@ export default function IssueCard({
             onClick={() => setExpanded((prev) => !prev)}
           >
             <span className={badgeClass}>{TYPE_LABEL[issue.type] ?? issue.type}</span>
-            <span className="text-sm font-semibold flex-1">{issue.title}</span>
+            <span className="text-sm font-semibold flex-1 text-black">{issue.title}</span>
             <Button variant="ghost" size="sm" onClick={handleEditStart} className="shrink-0">
               수정
             </Button>

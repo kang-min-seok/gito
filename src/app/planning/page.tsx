@@ -58,7 +58,7 @@ export default function PlanningPage() {
           <div className="mt-2 flex flex-col gap-2">
             {proposal.mainFeatures.map((f, i) => (
               <div key={i} className="px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-lg">
-                <div className="font-semibold text-sm mb-1">{f.name}</div>
+                <div className="font-semibold text-sm mb-1 text-gray-900">{f.name}</div>
                 <div className="text-sm text-gray-700">{f.description}</div>
               </div>
             ))}
@@ -67,10 +67,10 @@ export default function PlanningPage() {
 
         <div className="mb-3">
           <strong>타겟 유저</strong>
-          <p className="mt-1 text-sm text-gray-700 mb-2">{proposal.targetUsers.summary}</p>
+          <p className="mt-1 text-sm mb-2">{proposal.targetUsers.summary}</p>
           <ul className="pl-5 m-0">
             {proposal.targetUsers.traits.map((trait, i) => (
-              <li key={i} className="text-sm text-gray-700 mb-1">
+              <li key={i} className="text-sm mb-1">
                 {trait}
               </li>
             ))}
@@ -81,7 +81,7 @@ export default function PlanningPage() {
           <strong>유저 확보 계획</strong>
           <ul className="mt-1.5 pl-5">
             {proposal.userAcquisitionPlan.map((plan, i) => (
-              <li key={i} className="text-sm text-gray-700 mb-1.5">
+              <li key={i} className="text-sm mb-1.5">
                 {plan}
               </li>
             ))}
@@ -96,7 +96,7 @@ export default function PlanningPage() {
         <div className="flex gap-2 flex-wrap mb-5">
           {scenarios.summaryFlow.map((item, i) => (
             <div key={i} className="px-3.5 py-2.5 bg-gray-100 rounded-lg text-[13px]">
-              <div className="font-bold mb-1">{item.step}</div>
+              <div className="font-bold mb-1 text-gray-900">{item.step}</div>
               <div className="text-gray-500">{item.description}</div>
             </div>
           ))}
@@ -109,7 +109,7 @@ export default function PlanningPage() {
                 <span className="text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
                   {item.step}
                 </span>
-                <span className="text-sm font-semibold">{item.action}</span>
+                <span className="text-sm font-semibold text-gray-900">{item.action}</span>
               </div>
               <p className="text-sm text-gray-700 m-0">{item.detail}</p>
             </div>
@@ -123,7 +123,7 @@ export default function PlanningPage() {
         {techChallenge.challenges.map((c, i) => (
           <div key={i} className="mb-4">
             <strong>{c.title}</strong>
-            <p className="mt-1 text-sm text-gray-700">{c.description}</p>
+            <p className="mt-1 text-sm">{c.description}</p>
           </div>
         ))}
       </section>
@@ -172,7 +172,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-3">
       <strong>{label}</strong>
-      <p className="mt-1 text-sm text-gray-700">{value}</p>
+      <p className="mt-1 text-sm">{value}</p>
     </div>
   );
 }

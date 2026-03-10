@@ -92,7 +92,7 @@ export default function IssuesPage() {
                       if (e.key === 'Escape') handleEpicCancel();
                     }}
                     autoFocus
-                    className="flex-1 text-base font-bold border border-gray-300 rounded-md px-2 py-1 outline-none text-gray-900"
+                    className="flex-1 text-base font-bold border border-gray-300 rounded-md px-2 py-1 outline-none"
                   />
                   <Button variant="secondary" size="sm" onClick={handleEpicCancel}>
                     취소
@@ -103,7 +103,7 @@ export default function IssuesPage() {
                 </div>
               ) : (
                 <>
-                  <span className="text-base font-bold text-gray-900 flex-1">{group.epic}</span>
+                  <span className="text-base font-bold flex-1">{group.epic}</span>
                   <Button
                     variant="ghost"
                     size="sm"
