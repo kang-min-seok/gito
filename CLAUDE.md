@@ -1,188 +1,151 @@
-# Claude Code 전역 규칙
+# CLAUDE.md — Thumbs Up Frontend 개발 가이드
 
-## 1. 결정이 필요할 땐 반드시 먼저 물어볼 것
-
-가장 중요한 규칙이야. 아래 상황에서는 **절대 스스로 판단해서 진행하지 말고** 반드시 나에게 먼저 물어봐.
-
-- 요구사항이 모호하거나 해석이 두 가지 이상 가능할 때
-- 기술 스택, 라이브러리 선택이 필요할 때
-- 구조나 설계 방향을 결정해야 할 때
-- 기존 코드에 영향을 줄 수 있는 변경을 할 때
-- 프롬프트에 명시되지 않은 기능을 추가하려 할 때
-
-**나쁜 예시:**
-
-> 프롬프트에 상태관리 언급이 없었지만 Zustand가 적합할 것 같아서 설치했습니다.
-
-**좋은 예시:**
-
-> 상태관리 방식이 명시되지 않았습니다. 다음 중 어떤 방식을 선호하시나요?
->
-> 1. Zustand (경량, 단순한 전역 상태)
-> 2. Context API (외부 의존성 없음)
-> 3. 다른 방식
+> 이 파일은 Claude가 이 프로젝트에서 작업할 때 반드시 따르는 규칙과 플로우를 정의한다.
 
 ---
 
-## 2. 파일 분리 & 폴더 구조 원칙
+## 1. 개발 플로우
 
-### 하나의 파일은 하나의 책임만 가진다
-
-- 컴포넌트 1개 = 파일 1개
-- 200줄이 넘어가면 분리를 고려할 것
-- 관련 없는 로직을 한 파일에 묶지 말 것
-
-### 폴더 구조 기준
-
-```
-src/
-├── components/       # 재사용 가능한 UI 컴포넌트
-│   └── [ComponentName]/
-│       ├── index.tsx         # 컴포넌트 본체
-│       ├── [ComponentName].types.ts  # 타입 정의
-│       └── [ComponentName].utils.ts  # 컴포넌트 전용 유틸
-├── features/         # 도메인/기능 단위 묶음 (FSD 스타일)
-│   └── [featureName]/
-│       ├── components/
-│       ├── hooks/
-│       ├── utils/
-│       └── types.ts
-├── hooks/            # 전역 공통 커스텀 훅
-├── utils/            # 전역 공통 유틸 함수
-├── constants/        # 전역 상수
-├── types/            # 전역 타입 정의
-└── lib/              # 외부 라이브러리 설정 및 래핑
-```
-
-### 임포트 규칙
-
-- 같은 레벨의 파일끼리 직접 참조 금지
-- index.ts를 통해 외부로 노출할 것
-- 상대경로 깊이가 3단계 이상이면 alias 사용 (`@/`)
+요청의 성격에 따라 두 가지 플로우를 구분해서 적용한다.
 
 ---
 
-## 3. 매직 넘버 & 매직 스트링 금지
+### 1-A. 일반 구현 요청 (신규 기능, 구조 변경, 타입 수정 등)
 
-코드에 의미를 알 수 없는 숫자나 문자열을 직접 쓰지 말 것.
+아래 5단계를 반드시 순서대로 따른다.
 
-**나쁜 예시:**
-
-```typescript
-if (status === 'github_oauth_callback') { ... }
-setTimeout(fn, 3000)
-if (issues.length > 50) { ... }
-const url = 'https://api.github.com/repos'
 ```
+① docs/project-overview.md 분석
+   → 현재 아키텍처, 컴포넌트 구조, 상태 관리 방식, 디자인 시스템 파악
 
-**좋은 예시:**
+② 요청과 관련된 코드 추가 분석
+   → 수정 대상 파일, 의존 파일, 연관 타입/인터페이스 직접 Read
 
-```typescript
-// src/constants/auth.ts
-export const AUTH_STATUS = {
-  GITHUB_OAUTH_CALLBACK: 'github_oauth_callback',
-} as const;
+③ 구현 계획 수립 후 사용자에게 보고
+   → 변경 파일 목록, 접근 방식, 예상 결과물을 명확히 제시
 
-// src/constants/github.ts
-export const GITHUB_API = {
-  BASE_URL: 'https://api.github.com/repos',
-  MAX_ISSUES_PER_REQUEST: 50,
-} as const;
+④ 계획대로 수정 및 구현
 
-// src/constants/ui.ts
-export const DELAY_MS = {
-  TOAST_DISMISS: 3000,
-} as const;
+⑤ docs/project-overview.md 수정
+   → 변경된 구조, 신규 컴포넌트/훅, 타입, 디자인 시스템 반영
 ```
-
-### 상수 파일 위치
-
-- 전역에서 쓰는 상수 → `src/constants/`
-- 특정 feature에서만 쓰는 상수 → `src/features/[name]/constants.ts`
-- 컴포넌트 내부에서만 쓰는 상수 → 해당 컴포넌트 파일 상단에 선언
 
 ---
 
-## 4. 유틸 함수 활용 원칙
+### 1-B. 경량 요청 (아래 조건 중 하나라도 해당하면 적용)
 
-### 유틸로 분리할 기준
+- 단순 질문 / 코드 설명 요청
+- 1~2개 파일 내 스타일·문구·수치 등 국소적 수정
+- CLAUDE.md / docs 파일 자체 수정
+- 이미 대화 맥락에서 관련 코드를 충분히 파악한 상태의 후속 작업
 
-아래에 해당하면 반드시 util 함수로 분리할 것:
+**경량 요청 플로우:**
 
-- 같은 로직이 2곳 이상에서 사용되는 경우
-- 컴포넌트나 훅에서 순수 계산/변환 로직이 10줄 이상일 때
-- 외부 API 응답을 가공하는 로직
-- 날짜, 문자열, 배열 등의 데이터 변환
-
-**나쁜 예시:**
-
-```typescript
-// 컴포넌트 안에 변환 로직이 섞임
-const IssueList = ({ issues }) => {
-  const grouped = issues.reduce((acc, issue) => {
-    const type = issue.labels.find(l => ['epic','story','task'].includes(l))
-    if (!acc[type]) acc[type] = []
-    acc[type].push(issue)
-    return acc
-  }, {})
-  return <div>...</div>
-}
+```
+① 관련 파일만 직접 Read (project-overview.md 분석 생략)
+② 수정 및 구현
+③ 구조·타입 변경이 발생한 경우에만 docs/project-overview.md 업데이트
 ```
 
-**좋은 예시:**
+> ⚠️ 경량으로 시작했더라도 작업 중 구조 변경이 필요하다고 판단되면
+> 즉시 사용자에게 알리고 1-A 플로우로 전환한다.
 
-```typescript
-// src/features/issues/utils/groupIssuesByType.ts
-export const groupIssuesByType = (issues: Issue[]): GroupedIssues => {
-  return issues.reduce((acc, issue) => {
-    const type = issue.labels.find(l => ISSUE_TYPES.includes(l)) ?? 'task'
-    if (!acc[type]) acc[type] = []
-    acc[type].push(issue)
-    return acc
-  }, {} as GroupedIssues)
-}
+---
 
-// 컴포넌트는 깔끔하게
-const IssueList = ({ issues }) => {
-  const grouped = groupIssuesByType(issues)
-  return <div>...</div>
-}
+## 2. 요구사항이 애매할 때
+
+구현 전에 반드시 사용자에게 질문한다. **절대 임의로 가정하고 구현하지 않는다.**
+
+질문해야 하는 상황 예시:
+
+- 컴포넌트의 정확한 동작 범위가 불분명할 때
+- 상태를 어느 레벨에서 관리할지 결정이 필요할 때
+- UX 분기 처리(에러, 빈 상태, 로딩 등)가 명시되지 않았을 때
+- 기존 코드를 수정할지 새로 만들지 불분명할 때
+
+---
+
+## 3. 컴포넌트 설계 원칙
+
+### 3-1. 단일 책임
+
+- 하나의 컴포넌트는 하나의 역할만 가진다.
+- 렌더링 로직과 비즈니스 로직을 섞지 않는다 → 로직은 반드시 훅으로 분리.
+
+### 3-2. 컴포넌트 분리 기준
+
+```
+Page        → 라우트 단위. 훅을 호출하고 레이아웃을 조립만 한다.
+Section     → 페이지 내 독립 영역 (예: RouteSection). 자체 데이터 없이 props만 받는다.
+Card/Item   → 리스트 단일 항목. 순수 표현 컴포넌트(props-only).
+common/     → 여러 페이지에서 재사용되는 UI (Modal, Toast 등).
 ```
 
-### 유틸 함수 작성 규칙
+### 3-3. Props 설계
 
-- 순수 함수(pure function)로 작성할 것 (사이드이펙트 없음)
-- 함수명은 동사로 시작 (`get`, `format`, `parse`, `group`, `filter`, `convert`)
-- 하나의 함수는 하나의 일만 할 것
-- 반드시 입출력 타입을 명시할 것
-
----
-
-## 5. 타입 정의 원칙
-
-- `any` 사용 금지. 불가피하면 `unknown` 후 타입 가드 사용
-- API 응답 타입은 반드시 별도 파일에 정의
-- 타입과 인터페이스 구분: 확장 가능성 있으면 `interface`, 유니온/교차 타입은 `type`
-- 타입 이름은 파스칼케이스, 접두사 `I` `T` 붙이지 않기
+- props 타입은 컴포넌트 파일 내에서 `export`하여 훅/상위 컴포넌트가 임포트할 수 있게 한다.
+- `boolean` prop 이름은 `is-` / `has-` 접두사를 사용한다.
+- 콜백 prop 이름은 `on-` 접두사를 사용한다.
 
 ---
 
-## 6. 코드 작성 전 체크리스트
+## 4. 훅 설계 원칙
 
-새 기능을 만들기 전에 항상 이 순서로 진행:
-
-1. **요구사항 확인** - 모호한 부분이 있으면 먼저 질문
-2. **타입 먼저 정의** - 데이터 구조를 먼저 결정
-3. **상수 정의** - 필요한 상수를 constants 파일에 추가
-4. **유틸 함수 작성** - 순수 로직 먼저 분리
-5. **훅 작성** - 상태/사이드이펙트 로직
-6. **컴포넌트 작성** - UI만 담당, 최대한 얇게
+- 페이지 단위 훅(`useXxxPage`)은 해당 페이지의 모든 상태와 핸들러를 반환하고 page 컴포넌트에서만 사용한다.
+- 도메인 훅(`useXxx`)은 단일 관심사만 다룬다 (소켓, GPS, 타이머 등).
+- mock 데이터는 훅 파일 최상단에 `MOCK_` 접두사로 선언하고 주석으로 교체 시점을 명시한다.
 
 ---
 
-## 7. 커밋 & PR 단위
+## 5. 유틸 사용 원칙
 
-- 하나의 커밋은 하나의 논리적 변경만 포함
-- 커밋 메시지 형식: `type(scope): 내용`
-  - type: `feat`, `fix`, `refactor`, `style`, `chore`, `docs`
-  - 예시: `feat(issues): 이슈 타입별 그룹핑 유틸 추가`
+- 두 곳 이상에서 사용되는 순수 함수는 반드시 `src/utils/`로 분리한다.
+- 파일명은 도메인 기준으로 명명한다 (`chat.ts`, `user.ts`, `route.ts` 등).
+- 유틸 함수는 **사이드 이펙트 없이** 입력 → 출력만 수행해야 한다.
+
+---
+
+## 6. 매직 스트링 / 매직 넘버 금지
+
+- 반복 사용되는 문자열 리터럴은 `src/constants/` 파일로 추출한다.
+- 의미 있는 숫자 값(예: 최대 인원, 애니메이션 지속 시간 기본값)은 상수로 선언하거나 타입의 기본값으로 명시한다.
+- CSS에서 반복되는 색상 값은 `index.css`의 CSS 변수(`--color-*`)를 사용한다.
+
+```ts
+// ❌ Bad
+const MAX = 4;
+animation: `card-pulse 2s ease-in-out infinite`;
+
+// ✅ Good
+import { MAX_PASSENGERS } from '@/constants/matching';
+const DEFAULT_PULSE_DURATION = 2;
+animation: `card-pulse ${duration ?? DEFAULT_PULSE_DURATION}s ease-in-out infinite`;
+```
+
+---
+
+## 7. docs/project-overview.md 업데이트 규칙
+
+코드를 변경할 때마다 아래 항목 중 해당하는 부분을 반드시 업데이트한다.
+
+| 변경 유형             | 업데이트 대상 섹션                 |
+| --------------------- | ---------------------------------- |
+| 신규 컴포넌트/훅 추가 | 디렉토리 구조, 파일 변경 이력      |
+| 기존 컴포넌트/훅 수정 | 해당 섹션 설명 + 파일 변경 이력    |
+| 타입/인터페이스 변경  | 관련 UI 구조 섹션, 카드 타입 표 등 |
+| 애니메이션/CSS 추가   | 디자인 시스템 섹션                 |
+| 라우팅 변경           | 라우팅 & 페이지 흐름 섹션          |
+| Deprecated 파일 이동  | 파일 변경 이력 > Deprecated 표     |
+| Mock 데이터 구조 변경 | 해당 Hook 설명, 카드 타입 표 등    |
+
+---
+
+## 8. 커밋 규칙
+
+**모든 작업이 완료된 후에는 반드시 커밋 메시지를 제안하고, 사용자가 명시적으로 커밋을 요청할 때까지 절대 직접 커밋하지 않는다.**
+
+- 작업 완료 시: 커밋 메시지 후보를 제안하고 사용자의 확인을 기다린다.
+- 커밋 메시지는 한국어로 작성한다 (이 프로젝트의 이력 기준).
+- 커밋 메시지 형식: `<type>: <요약>\n\n<변경 항목 bullet>`
+  - type 예시: `feat`, `fix`, `refactor`, `docs`, `style`, `chore`
+- `git commit`은 사용자가 "커밋해줘" / "커밋하자" 등 명확한 지시를 한 경우에만 실행한다.

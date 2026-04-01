@@ -104,102 +104,159 @@ export default function ResultPage() {
     });
   }, [router]);
 
+  /* ── 로딩 상태 ── */
   if (pageState.status === 'creating_project' || pageState.status === 'creating_issues') {
     const isProject = pageState.status === 'creating_project';
     return (
-      <main className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="w-10 h-10 border-[3px] border-gray-200 border-t-gray-900 rounded-full animate-spin" />
-        <p className="text-base text-gray-700 font-semibold">
-          {isProject ? '프로젝트를 생성하고 있습니다...' : '이슈를 생성하고 있습니다...'}
-        </p>
-        <p className="text-[13px] text-gray-400">
-          {isProject
-            ? 'GitHub Projects와 커스텀 필드를 설정하는 중입니다.'
-            : 'GitHub에 이슈를 등록하고 프로젝트에 추가하는 중입니다.'}
-        </p>
-      </main>
-    );
-  }
-
-  if (pageState.status === 'error') {
-    return (
-      <main className="page-container">
-        <h1 className="text-2xl font-bold mb-2 text-red-600">오류가 발생했습니다</h1>
-        <p className="text-sm text-gray-500 mb-6">{pageState.message}</p>
-        <div className="flex gap-3">
-          <Button onClick={() => router.back()}>돌아가기</Button>
-          <Button variant="secondary" onClick={() => router.push('/')}>
-            처음으로
-          </Button>
+      <main className="flex items-center justify-center min-h-[calc(100vh-120px)] px-6 py-10">
+        <div className="w-full max-w-[440px] bg-[#161b22] border border-[#30363d] rounded-2xl p-8 flex flex-col items-center gap-6">
+          <div className="w-14 h-14 rounded-full border-4 border-[#6762a7]/30 border-t-[#6762a7] animate-spin" />
+          <div className="text-center flex flex-col gap-2">
+            <p className="text-lg font-semibold text-[#f1f5f9]">
+              {isProject ? '프로젝트를 생성하고 있습니다...' : '이슈를 생성하고 있습니다...'}
+            </p>
+            <p className="text-[13px] text-[#94a3b8]">
+              {isProject
+                ? 'GitHub Projects와 커스텀 필드를 설정하는 중입니다.'
+                : 'GitHub에 이슈를 등록하고 프로젝트에 추가하는 중입니다.'}
+            </p>
+          </div>
+          <div className="w-full bg-[#6762a7]/20 rounded-lg px-4 py-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#6762a7] animate-pulse shrink-0" />
+            <span className="text-[13px] text-[#f1f5f9]">
+              {isProject ? 'GitHub 프로젝트 생성 중...' : 'GitHub 이슈 등록 중...'}
+            </span>
+          </div>
+          <div className="w-full flex flex-col gap-2 border-t border-[#30363d] pt-4">
+            {!isProject && (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3fb950] shrink-0" />
+                <span className="text-[12px] text-[#94a3b8]">GitHub 프로젝트 생성 완료</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#6762a7] animate-pulse shrink-0" />
+              <span className="text-[12px] text-[#94a3b8]">
+                {isProject ? 'GitHub 프로젝트 생성 중...' : 'GitHub 이슈 등록 중...'}
+              </span>
+            </div>
+          </div>
         </div>
       </main>
     );
   }
 
+  /* ── 에러 상태 ── */
+  if (pageState.status === 'error') {
+    return (
+      <main className="flex items-center justify-center min-h-[calc(100vh-120px)] px-6 py-10">
+        <div className="w-full max-w-[440px] bg-[#161b22] border border-red-800/50 rounded-2xl p-8 flex flex-col items-center gap-6 text-center">
+          <div className="w-14 h-14 rounded-full bg-red-900/30 flex items-center justify-center text-2xl">
+            ✕
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-red-400 mb-2">오류가 발생했습니다</p>
+            <p className="text-[13px] text-[#94a3b8]">{pageState.message}</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => router.back()}>
+              돌아가기
+            </Button>
+            <Button onClick={() => router.push('/')}>처음으로</Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /* ── 성공 상태 ── */
   const { issuesResult, repo, projectUrl } = pageState;
   const repoIssuesUrl = `https://github.com/${repo.fullName}/issues`;
 
   return (
-    <main className="page-container">
-      <h1 className="text-2xl font-bold mb-2">완료</h1>
-      <p className="text-sm text-gray-500 mb-8">
-        <strong>{repo.fullName}</strong>에 총 <strong>{issuesResult.created.length}개</strong>의
-        이슈가 등록되었습니다.
+    <main className="flex items-center justify-center min-h-[calc(100vh-120px)] px-6 py-10">
+      <div className="w-full max-w-[480px] bg-[#161b22] border border-[#30363d] rounded-2xl p-8 flex flex-col items-center gap-6">
+        {/* 완료 아이콘 */}
+        <div className="w-16 h-16 rounded-full bg-[#3fb950]/20 border-2 border-[#3fb950] flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M20 6L9 17l-5-5"
+              stroke="#3fb950"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+
+        <div className="text-center flex flex-col gap-2">
+          <h1 className="text-xl font-bold text-[#f1f5f9]">이슈 생성이 완료되었습니다!</h1>
+          <p className="text-[13px] text-[#94a3b8] leading-relaxed">
+            축하합니다! 모든 단계가 성공적으로 마무리되었습니다.
+            <br />
+            설정하신 GitHub 레포지토리에 프로젝트를 만들고
+            <br />
+            이슈를 생성 및 등록하였습니다!!
+          </p>
+        </div>
+
+        {/* 레포 정보 */}
+        <div className="w-full flex items-center gap-3 px-4 py-3 bg-[#0d1117] border border-[#30363d] rounded-xl">
+          <div className="w-8 h-8 rounded-md bg-[#30363d] flex items-center justify-center text-[14px] shrink-0">
+            📦
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-[#f1f5f9] truncate">{repo.fullName}</p>
+            <p className="text-[11px] text-[#64748b]">
+              {issuesResult.created.length}개 이슈 생성
+              {issuesResult.failed.length > 0 && (
+                <span className="text-red-400"> · {issuesResult.failed.length}개 실패</span>
+              )}
+            </p>
+          </div>
+          <span className="w-2 h-2 rounded-full bg-[#3fb950] shrink-0" />
+        </div>
+
+        {/* 실패 목록 */}
         {issuesResult.failed.length > 0 && (
-          <span className="text-red-600"> ({issuesResult.failed.length}개 실패)</span>
+          <div className="w-full">
+            <p className="section-label text-red-400 mb-2">생성 실패</p>
+            <div className="flex flex-col gap-2">
+              {issuesResult.failed.map((issue, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-4 py-3 border border-red-800/50 rounded-lg bg-red-900/10"
+                >
+                  <span className="text-[13px] text-[#94a3b8] flex-1">{issue.title}</span>
+                  <span className="text-[11px] text-red-400 shrink-0">{issue.error}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-      </p>
 
-      {issuesResult.created.length > 0 && (
-        <section className="mb-8">
-          <p className="section-label mb-3">생성된 이슈</p>
-          <div className="flex flex-col gap-2">
-            {issuesResult.created.map((issue) => (
-              <a
-                key={issue.number}
-                href={issue.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 px-4 py-3 border border-gray-200 rounded-lg bg-white no-underline text-inherit"
-              >
-                <span className="text-xs font-bold text-gray-400 shrink-0 min-w-10">
-                  #{issue.number}
-                </span>
-                <span className="text-sm text-gray-900 flex-1">{issue.title}</span>
-                <span className="text-xs text-blue-600 shrink-0">열기 →</span>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
+        {/* 액션 버튼 */}
+        <div className="w-full flex gap-3">
+          <Button
+            variant="secondary"
+            href={projectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1"
+          >
+            GitHub에서 확인하기
+          </Button>
+          <Button href={repoIssuesUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+            + 새 프로젝트 시작
+          </Button>
+        </div>
 
-      {issuesResult.failed.length > 0 && (
-        <section className="mb-8">
-          <p className="section-label text-red-600 mb-3">생성 실패</p>
-          <div className="flex flex-col gap-2">
-            {issuesResult.failed.map((issue, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 px-4 py-3 border border-red-200 rounded-lg bg-red-50"
-              >
-                <span className="text-sm text-gray-700 flex-1">{issue.title}</span>
-                <span className="text-xs text-red-600 shrink-0">{issue.error}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <div className="flex gap-3 flex-wrap">
-        <Button href={projectUrl} target="_blank" rel="noopener noreferrer">
-          GitHub 프로젝트 보기
-        </Button>
-        <Button variant="secondary" href={repoIssuesUrl} target="_blank" rel="noopener noreferrer">
-          GitHub 이슈 목록 보기
-        </Button>
-        <Button variant="secondary" onClick={() => router.push('/')}>
+        <button
+          onClick={() => router.push('/')}
+          className="text-[12px] text-[#64748b] hover:text-[#94a3b8] bg-transparent border-0 cursor-pointer"
+        >
           새 아이디어 입력하기
-        </Button>
+        </button>
       </div>
     </main>
   );
