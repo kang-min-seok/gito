@@ -147,33 +147,47 @@ export default function RepoSelectPage() {
   const isLoading = repoState.status === 'loading' || ownerState.status === 'loading';
 
   return (
-    <main className="px-6 py-10 max-w-[960px] mx-auto">
-      <div className="flex items-start justify-between mb-2">
-        <h1 className="text-2xl font-bold">레포지토리 선택</h1>
+    <main className="flex flex-col min-h-[calc(100vh-120px)]">
+      {/* 타이틀 */}
+      <div className="px-6 pt-8 pb-4 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#f1f5f9]">레포지토리 선택</h1>
+          <p className="text-[13px] text-[#94a3b8] mt-1">
+            이슈와 프로젝트를 생성할 레포지토리를 선택하세요.
+          </p>
+        </div>
         {!isLoading && repoState.status === 'success' && (
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={handleRefresh}>
-              새로고침
-            </Button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            className="text-[12px] text-[#64748b] hover:text-[#94a3b8] bg-transparent border border-[#30363d] rounded-lg px-3 py-1.5 cursor-pointer mt-1"
+          >
+            새로고침
+          </button>
         )}
       </div>
-      <p className="text-sm text-gray-500 mb-8">이슈를 등록할 GitHub 레포지토리를 선택하세요.</p>
 
-      {isLoading && <p className="text-gray-500 text-sm">불러오는 중...</p>}
+      {/* 본문 */}
+      <div className="flex flex-1 gap-0 px-6 pb-24 min-h-0">
+        {isLoading && (
+          <div className="flex items-center gap-2 text-[#94a3b8] text-sm py-4">
+            <div className="w-4 h-4 rounded-full border-2 border-[#30363d] border-t-[#6762a7] animate-spin" />
+            불러오는 중...
+          </div>
+        )}
 
-      {repoState.status === 'error' && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-          {repoState.message}
-        </div>
-      )}
+        {repoState.status === 'error' && (
+          <div className="p-4 bg-red-900/20 border border-red-800 rounded-xl text-red-400 text-sm">
+            {repoState.message}
+          </div>
+        )}
 
-      {!isLoading && repoState.status === 'success' && (
-        <>
-          <div className="flex gap-5 mb-6">
-            {/* 사이드바: 개인 + 조직 목록 + 권한 설정 */}
-            <div className="w-[180px] shrink-0 flex flex-col gap-1">
-              <p className="section-label mb-2">계정 / 조직</p>
+        {!isLoading && repoState.status === 'success' && (
+          <>
+            {/* 왼쪽 사이드바: 계정/조직 */}
+            <div className="w-[200px] shrink-0 flex flex-col pr-4">
+              <p className="text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 px-1">
+                계정 / 조직
+              </p>
 
               {ownerState.status === 'success' && (
                 <>
@@ -183,9 +197,15 @@ export default function RepoSelectPage() {
                     isSelected={selectedOwner === ownerState.info.login}
                     onClick={() => handleOwnerSelect(ownerState.info.login)}
                   />
+                  <OwnerButton
+                    label="모든 계정"
+                    sublabel=""
+                    isSelected={selectedOwner === null}
+                    onClick={() => handleOwnerSelect(ownerState.info.login)}
+                  />
 
                   {ownerState.info.orgs.length > 0 && (
-                    <div className="border-t border-gray-100 mt-2 pt-2 flex flex-col gap-1">
+                    <div className="border-t border-[#30363d] mt-2 pt-2 flex flex-col gap-0.5">
                       {ownerState.info.orgs.map((org) => (
                         <OwnerButton
                           key={org.login}
@@ -201,13 +221,15 @@ export default function RepoSelectPage() {
               )}
 
               {ownerState.status === 'error' && (
-                <p className="text-xs text-red-600">조직 목록을 불러오지 못했습니다.</p>
+                <p className="text-[12px] text-red-400 px-2">조직 목록을 불러오지 못했습니다.</p>
               )}
 
-              {/* 조직 권한 설정 섹션 */}
-              <div className="border-t border-gray-100 mt-3 pt-3 flex flex-col gap-1.5">
-                <p className="section-label mb-1">조직 권한</p>
-                <p className="text-[11px] text-gray-400 leading-relaxed">
+              {/* 조직 권한 설정 */}
+              <div className="border-t border-[#30363d] mt-3 pt-3 flex flex-col gap-2">
+                <p className="text-[11px] font-bold text-[#64748b] uppercase tracking-widest">
+                  조직 권한
+                </p>
+                <p className="text-[11px] text-[#64748b] leading-relaxed">
                   목록에 없는 조직이 있다면 권한을 설정하세요.
                 </p>
                 {appSettingsUrl && (
@@ -215,36 +237,49 @@ export default function RepoSelectPage() {
                     href={appSettingsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block py-[7px] px-2.5 text-xs font-semibold text-gray-700 border border-gray-200 rounded-md no-underline text-center bg-white"
+                    className="block py-2 px-3 text-[12px] font-semibold text-[#94a3b8] border border-[#30363d] rounded-lg no-underline text-center bg-transparent hover:bg-[#161b22]"
                   >
-                    GitHub에서 권한 설정 →
+                    ⚙ GitHub에서 권한 설정 →
                   </a>
                 )}
               </div>
             </div>
 
-            {/* 레포 목록 */}
-            <div className="flex-1 min-w-0">
+            {/* 오른쪽: 레포 목록 */}
+            <div className="flex-1 min-w-0 flex flex-col gap-3">
               {filteredRepos.length === 0 ? (
-                <p className="text-sm text-gray-400 pt-2">레포지토리가 없습니다.</p>
+                <p className="text-sm text-[#64748b] pt-2">레포지토리가 없습니다.</p>
               ) : (
-                <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-3 overflow-y-auto pr-1">
                   {filteredRepos.map((repo) => {
                     const isSelected = selectedRepo?.fullName === repo.fullName;
                     return (
                       <button
                         key={repo.fullName}
                         onClick={() => setSelectedRepo(isSelected ? null : repo)}
-                        className={`flex flex-col items-start gap-1 px-4 py-3.5 rounded-lg cursor-pointer text-left w-full ${isSelected ? 'border-2 border-gray-900 bg-gray-50' : 'border border-gray-200 bg-white'}`}
+                        className={`flex flex-col items-start gap-2 px-4 py-4 rounded-xl cursor-pointer text-left w-full transition-colors border ${
+                          isSelected
+                            ? 'border-[#6762a7] bg-[#6762a7]/10'
+                            : 'border-[#30363d] bg-[#161b22] hover:border-[#6762a7]/50 hover:bg-[#1c2128]'
+                        }`}
                       >
                         <div className="flex items-center gap-2 w-full">
-                          <span className="text-sm font-semibold text-gray-900 flex-1 truncate">
+                          <span className="text-[13px] font-semibold text-[#f1f5f9] flex-1 truncate">
                             {repo.name}
                           </span>
-                          {repo.isPrivate && <span className="badge badge-default">Private</span>}
+                          {repo.isPrivate && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#30363d] text-[#94a3b8] shrink-0">
+                              PRIVATE
+                            </span>
+                          )}
+                          {!repo.isPrivate && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#3fb950]/20 text-[#3fb950] shrink-0">
+                              PUBLIC
+                            </span>
+                          )}
                         </div>
                         {repo.description && (
-                          <span className="text-[13px] text-gray-500 truncate w-full">
+                          <span className="text-[12px] text-[#64748b] line-clamp-2 leading-relaxed">
                             {repo.description}
                           </span>
                         )}
@@ -254,23 +289,17 @@ export default function RepoSelectPage() {
                 </div>
               )}
             </div>
-          </div>
+          </>
+        )}
+      </div>
 
-          {selectedRepo && (
-            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg mb-6">
-              <p className="text-[13px] text-gray-500 mb-1">선택된 레포지토리</p>
-              <p className="text-[15px] font-semibold text-gray-900">{selectedRepo.fullName}</p>
-            </div>
-          )}
-        </>
-      )}
-
-      <div className="flex gap-3 flex-wrap">
+      {/* 하단 고정 푸터 */}
+      <div className="fixed bottom-0 left-0 right-0 flex justify-between items-center px-6 py-4 bg-[#0d1117] border-t border-[#30363d]">
         <Button variant="secondary" onClick={() => router.back()}>
-          이슈 목록으로 돌아가기
+          이전 단계
         </Button>
         <Button disabled={!selectedRepo} onClick={handleCreateIssues}>
-          이슈 생성하기
+          이슈 및 프로젝트 만들기 →
         </Button>
       </div>
     </main>
@@ -291,16 +320,20 @@ function OwnerButton({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-start gap-0.5 px-2.5 py-2 border-0 rounded-md cursor-pointer text-left w-full ${isSelected ? 'bg-gray-900' : 'bg-transparent'}`}
+      className={`flex flex-col items-start gap-0.5 px-3 py-2.5 border-0 rounded-lg cursor-pointer text-left w-full transition-colors ${
+        isSelected ? 'bg-[#6762a7]' : 'bg-transparent hover:bg-[#161b22]'
+      }`}
     >
       <span
-        className={`text-[13px] font-semibold truncate w-full ${isSelected ? 'text-white' : 'text-gray-700'}`}
+        className={`text-[13px] font-semibold truncate w-full ${isSelected ? 'text-white' : 'text-[#94a3b8]'}`}
       >
         {label}
       </span>
-      <span className={`text-[11px] ${isSelected ? 'text-gray-300' : 'text-gray-400'}`}>
-        {sublabel}
-      </span>
+      {sublabel && (
+        <span className={`text-[11px] ${isSelected ? 'text-white/70' : 'text-[#64748b]'}`}>
+          {sublabel}
+        </span>
+      )}
     </button>
   );
 }

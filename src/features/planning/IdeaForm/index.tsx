@@ -123,75 +123,107 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
     setFormState({ ...formState, answers: next });
   }
 
-  const isLoading = formState.status === 'loading';
-  const isDisabled = isLoading || idea.trim().length === 0;
+  /* ────────────────────────────────────────
+     Step 2_1: AI 기획서 생성 중 로딩 화면
+  ──────────────────────────────────────── */
+  if (formState.status === 'loading') {
+    return (
+      <main className="flex items-center justify-center min-h-[calc(100vh-120px)] px-6 py-10">
+        <div className="w-full max-w-[440px] bg-[#161b22] border border-[#30363d] rounded-2xl p-8 flex flex-col items-center gap-6">
+          {/* 아이콘 */}
+          <div className="w-14 h-14 rounded-full border-4 border-[#6762a7]/30 border-t-[#6762a7] animate-spin" />
 
-  return (
-    <main className="px-6 py-10">
-      <h1 className="text-2xl font-bold mb-2">안녕하세요, {userName}님</h1>
-      <p className="text-gray-500 mb-8">
-        아이디어를 입력하면 기획서와 GitHub 이슈를 자동으로 만들어드려요.
-      </p>
+          <div className="text-center flex flex-col gap-2">
+            <p className="text-lg font-semibold text-[#f1f5f9]">AI가 기획서를 작성 중입니다...</p>
+            <p className="text-[13px] text-[#94a3b8]">
+              입력하신 아이디어를 분석하고 기획서를 생성하고 있습니다.
+            </p>
+          </div>
 
-      <textarea
-        aria-label="아이디어 입력"
-        placeholder="아이디어를 입력하세요. (예: 중고 거래 앱, 독서 기록 서비스...)"
-        rows={6}
-        value={idea}
-        onChange={(e) => setIdea(e.target.value)}
-        disabled={isLoading}
-        className="w-full max-w-150 p-3 border border-gray-300 rounded-lg text-sm resize-y"
-      />
-      <br />
-      <Button onClick={handleSubmit} disabled={isDisabled} className="mt-3">
-        {isLoading ? '기획서 생성 중...' : '기획서 생성하기'}
-      </Button>
+          {/* 현재 진행 단계 */}
+          <div className="w-full bg-[#6762a7]/20 rounded-lg px-4 py-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#6762a7] animate-pulse shrink-0" />
+            <span className="text-[13px] text-[#f1f5f9]">기획서 초안 작성 중...</span>
+          </div>
 
-      {formState.status === 'error' && (
-        <p className="mt-4 text-red-500 text-sm">{formState.message}</p>
-      )}
-
-      {formState.status === 'question' && (
-        <div className="mt-8 max-w-150">
-          <p className="font-bold mb-4">
-            조금 더 구체적인 정보가 필요해요. 아래 질문에 답해주세요.
+          <p className="text-[12px] text-[#64748b]">
+            잠시만 기다려 주세요. 보통 1-2분 정도 소요됩니다.
           </p>
+
+          {/* 진행 단계 로그 */}
+          <div className="w-full flex flex-col gap-2 border-t border-[#30363d] pt-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#3fb950] shrink-0" />
+              <span className="text-[12px] text-[#94a3b8]">아이디어 분석 완료</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#6762a7] animate-pulse shrink-0" />
+              <span className="text-[12px] text-[#94a3b8]">기획서 작성 중...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /* ────────────────────────────────────────
+     Step 2_2: AI 추가 질문 화면
+  ──────────────────────────────────────── */
+  if (formState.status === 'question') {
+    return (
+      <main className="flex flex-col items-center px-6 py-10 min-h-[calc(100vh-120px)]">
+        {/* 유저 아바타 */}
+        <div className="w-12 h-12 rounded-full bg-[#6762a7]/20 flex items-center justify-center text-xl mb-6">
+          👤
+        </div>
+
+        <h2 className="text-[22px] font-bold text-[#f1f5f9] text-center mb-2">
+          AI가 더 정확한 기획서를 위해 몇 가지 질문을 준비했습니다.
+        </h2>
+        <p className="text-[14px] text-[#94a3b8] mb-8">각 항목에 답변해 주세요.</p>
+
+        {/* 질문 카드 */}
+        <div className="w-full max-w-[560px] bg-[#161b22] border border-[#30363d] rounded-2xl p-6 flex flex-col gap-6">
           {formState.questions.map((q, i) => (
-            <div key={i} className="mb-5">
-              <p className="text-sm font-medium mb-2">
-                {i + 1}. {q.question}
+            <div key={i}>
+              <p className="text-[13px] font-semibold text-[#f1f5f9] mb-3">
+                Q{i + 1}. {q.question}
               </p>
               {q.options && q.options.length > 0 ? (
-                <div className="flex flex-col gap-1.5">
-                  {q.options.map((opt) => (
-                    <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
-                      <input
-                        type="radio"
-                        name={`question-${i}`}
-                        value={opt}
-                        checked={formState.answers[i] === opt && !formState.customModes[i]}
-                        onChange={() => selectOption(i, opt)}
-                      />
-                      {opt}
-                    </label>
-                  ))}
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
-                    <input
-                      type="radio"
-                      name={`question-${i}`}
-                      value="__custom__"
-                      checked={formState.customModes[i]}
-                      onChange={() => selectCustomMode(i)}
-                    />
-                    직접 입력
-                  </label>
+                <div className="flex flex-wrap gap-2">
+                  {q.options.map((opt) => {
+                    const isSelected = formState.answers[i] === opt && !formState.customModes[i];
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => selectOption(i, opt)}
+                        className={`px-3.5 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#6762a7]/20 border-[#6762a7] text-[#f1f5f9]'
+                            : 'bg-transparent border-[#30363d] text-[#94a3b8] hover:border-[#6762a7]/50 hover:text-[#f1f5f9]'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => selectCustomMode(i)}
+                    className={`px-3.5 py-2 rounded-lg text-[13px] font-medium border transition-colors cursor-pointer ${
+                      formState.customModes[i]
+                        ? 'bg-[#6762a7]/20 border-[#6762a7] text-[#f1f5f9]'
+                        : 'bg-transparent border-[#30363d] text-[#94a3b8] hover:border-[#6762a7]/50 hover:text-[#f1f5f9]'
+                    }`}
+                  >
+                    ✏️ 직접 입력하기
+                  </button>
                   {formState.customModes[i] && (
                     <input
                       type="text"
                       value={formState.answers[i]}
                       onChange={(e) => updateCustomAnswer(i, e.target.value)}
                       placeholder="직접 입력..."
-                      className="px-2.5 py-2 border border-gray-300 rounded-md text-sm"
+                      className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f1f5f9] placeholder-[#64748b] outline-none focus:border-[#6762a7] mt-1"
                     />
                   )}
                 </div>
@@ -201,16 +233,93 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
                   value={formState.answers[i]}
                   onChange={(e) => updateCustomAnswer(i, e.target.value)}
                   placeholder="답변을 입력하세요..."
-                  className="w-full px-2.5 py-2 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f1f5f9] placeholder-[#64748b] outline-none focus:border-[#6762a7]"
                 />
               )}
             </div>
           ))}
-          <Button onClick={handleAnswerSubmit} disabled={isLoading}>
-            기획서 생성하기
+
+          {/* 제출 버튼 */}
+          <Button onClick={handleAnswerSubmit} className="w-full !py-3 gap-2">
+            답변 제출 및 기획서 생성 ⚡
           </Button>
         </div>
-      )}
+      </main>
+    );
+  }
+
+  /* ────────────────────────────────────────
+     Step 1: 아이디어 입력 화면 (idle / error)
+  ──────────────────────────────────────── */
+  const isDisabled = idea.trim().length === 0;
+
+  return (
+    <main className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] px-6 py-10">
+      {/* 타이틀 영역 */}
+      <div className="text-center mb-10 flex flex-col items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-[#6762a7]/20 flex items-center justify-center text-2xl">
+          💡
+        </div>
+        <h1 className="text-[28px] font-bold text-[#f1f5f9]">당신의 아이디어를 들려주세요</h1>
+        <p className="text-[#94a3b8] text-[15px] leading-relaxed">
+          새로운 프로젝트의 핵심 가치와 기능을 자유롭게 적어주세요.
+          <br />
+          AI가 당신의 아이디어를 구체적인 기획서로 변환해 드립니다.
+        </p>
+      </div>
+
+      {/* 입력 카드 */}
+      <div className="w-full max-w-[600px] bg-[#161b22] border border-[#30363d] rounded-2xl p-6 flex flex-col gap-4">
+        <label className="text-[13px] font-semibold text-[#94a3b8]">프로젝트 상세 설명</label>
+        <div className="relative">
+          <textarea
+            aria-label="아이디어 입력"
+            placeholder={`예: 실시간으로 주식 포트폴리오를 공유하고 토론할 수 있는 모바일 전용 커뮤니티 앱을 만들고 싶습니다. 주요 기능으로는 차트 공유, 익명 게시판, 알림 서비스 등이 필요합니다.`}
+            rows={7}
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg p-3.5 text-sm text-[#f1f5f9] placeholder-[#64748b] resize-y outline-none focus:border-[#6762a7] leading-relaxed"
+          />
+          <p className="text-[11px] text-[#64748b] mt-2 flex items-center gap-1">
+            <span>ℹ️</span> 입력한 내용은 안전하게 암호화되어 전송됩니다.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button onClick={handleSubmit} disabled={isDisabled} className="flex-1 !py-3 gap-2">
+            확인 →
+          </Button>
+        </div>
+
+        {formState.status === 'error' && (
+          <p className="text-red-400 text-sm">{formState.message}</p>
+        )}
+      </div>
+
+      {/* 힌트 카드 3개 */}
+      <div className="w-full max-w-[600px] grid grid-cols-3 gap-3 mt-4">
+        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col gap-2">
+          <span className="text-xl">🎯</span>
+          <p className="text-[13px] font-semibold text-[#f1f5f9]">구체적인 목표</p>
+          <p className="text-[12px] text-[#64748b] leading-relaxed">
+            해결하고자 하는 문제와 타겟 사용자를 명시해보세요.
+          </p>
+        </div>
+        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col gap-2">
+          <span className="text-xl">⭐</span>
+          <p className="text-[13px] font-semibold text-[#f1f5f9]">핵심 기능</p>
+          <p className="text-[12px] text-[#64748b] leading-relaxed">
+            반드시 포함되어야 하는 MVP 기능 위주로 작성하세요.
+          </p>
+        </div>
+        <div className="bg-[#161b22] border border-[#30363d] rounded-xl p-4 flex flex-col gap-2">
+          <span className="text-xl">🎨</span>
+          <p className="text-[13px] font-semibold text-[#f1f5f9]">디자인 모드</p>
+          <p className="text-[12px] text-[#64748b] leading-relaxed">
+            원하는 스타일이나 참고할 만한 서비스가 있다면 알려주세요.
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

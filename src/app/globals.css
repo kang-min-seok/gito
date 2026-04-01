@@ -1,32 +1,32 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --color-primary: #6762a6;
+  /* Figma 디자인 토큰 */
+  --bg-page: #0d1117;
+  --bg-surface: #161b22;
+  --bg-surface-hover: #1c2128;
+  --border-color: #30363d;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --color-primary: #6762a7;
   --color-primary-hover: #574f91;
   --color-primary-active: #4f4680;
-  --color-primary-disabled: #b0aed3;
+  --color-primary-disabled: #3d3a5c;
+  --color-success: #3fb950;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-page);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 @layer components {
@@ -35,26 +35,26 @@ body {
     @apply text-[11px] font-bold px-2 py-0.5 rounded shrink-0;
   }
   .badge-epic {
-    @apply bg-blue-100 text-blue-700;
+    @apply bg-blue-500/20 text-blue-400;
   }
   .badge-story {
-    @apply bg-green-100 text-green-700;
+    @apply bg-green-500/20 text-green-400;
   }
   .badge-task {
-    @apply bg-yellow-100 text-yellow-700;
+    @apply bg-yellow-500/20 text-yellow-400;
   }
   .badge-default {
-    @apply bg-gray-100 text-gray-700;
+    @apply bg-[#30363d] text-[#94a3b8];
   }
 
-  /* Card */
+  /* Dark card */
   .card {
-    @apply border border-gray-200 rounded-lg bg-white overflow-hidden;
+    @apply border border-[#30363d] rounded-lg bg-[#161b22] overflow-hidden;
   }
 
   /* Section label */
   .section-label {
-    @apply text-[11px] font-bold text-gray-400 uppercase tracking-[0.05em];
+    @apply text-[11px] font-bold text-[#64748b] uppercase tracking-[0.05em];
   }
 
   /* Page container */

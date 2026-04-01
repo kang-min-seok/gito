@@ -7,9 +7,9 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   primary:
     'bg-[var(--color-primary)] text-white border-0 hover:bg-[var(--color-primary-hover)] active:bg-[var(--color-primary-active)] disabled:bg-[var(--color-primary-disabled)] disabled:cursor-not-allowed cursor-pointer',
   secondary:
-    'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer',
+    'bg-transparent text-[#f1f5f9] border border-[#30363d] hover:bg-[#1c2128] active:bg-[#30363d] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer',
   ghost:
-    'bg-transparent text-gray-400 border-0 hover:text-gray-700 active:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer',
+    'bg-transparent text-[#64748b] border-0 hover:text-[#94a3b8] active:text-[#f1f5f9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer',
 };
 
 const SIZE_CLASSES: Record<Size, string> = {
