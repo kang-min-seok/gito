@@ -31,6 +31,7 @@ async function addIssueToProject(
   epicFieldId: string,
   epicOptionId: string
 ) {
+  // Step 1: 프로젝트에 이슈 추가 (itemId 확정 필요)
   const addData = await githubGraphQL<{ addProjectV2ItemById: { item: { id: string } } }>(
     token,
     `mutation($projectId: ID!, $contentId: ID!) {
@@ -42,31 +43,32 @@ async function addIssueToProject(
   );
   const itemId = addData.addProjectV2ItemById.item.id;
 
-  await githubGraphQL(
-    token,
-    `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  // Step 2: 두 필드 업데이트를 병렬 처리
+  const UPDATE_MUTATION = `
+    mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
       updateProjectV2ItemFieldValue(input: {
         projectId: $projectId
         itemId: $itemId
         fieldId: $fieldId
         value: { singleSelectOptionId: $optionId }
       }) { projectV2Item { id } }
-    }`,
-    { projectId, itemId, fieldId: issueTypeFieldId, optionId: issueTypeOptionId }
-  );
+    }
+  `;
 
-  await githubGraphQL(
-    token,
-    `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-      updateProjectV2ItemFieldValue(input: {
-        projectId: $projectId
-        itemId: $itemId
-        fieldId: $fieldId
-        value: { singleSelectOptionId: $optionId }
-      }) { projectV2Item { id } }
-    }`,
-    { projectId, itemId, fieldId: epicFieldId, optionId: epicOptionId }
-  );
+  await Promise.all([
+    githubGraphQL(token, UPDATE_MUTATION, {
+      projectId,
+      itemId,
+      fieldId: issueTypeFieldId,
+      optionId: issueTypeOptionId,
+    }),
+    githubGraphQL(token, UPDATE_MUTATION, {
+      projectId,
+      itemId,
+      fieldId: epicFieldId,
+      optionId: epicOptionId,
+    }),
+  ]);
 }
 
 export async function POST(req: Request) {
@@ -88,99 +90,165 @@ export async function POST(req: Request) {
   const created: CreatedIssue[] = [];
   const failed: Array<{ title: string; error: string }> = [];
 
-  for (const epicGroup of issues.issues) {
-    const epicOption = project?.epicOptions.find((o) => o.name === epicGroup.epic);
+  // ── Step 1: 모든 Story 병렬 생성 ──────────────────────────────────────
 
-    for (const story of epicGroup.stories) {
-      let storyNumber: number | null = null;
+  type StoryJob = {
+    story: (typeof issues.issues)[number]['stories'][number];
+    epicGroup: (typeof issues.issues)[number];
+  };
 
-      try {
-        const { data } = await octokit.issues.create({
-          owner,
-          repo,
-          title: story.title,
-          body: story.body,
-          labels: story.labels,
-        });
-        storyNumber = data.number;
-        created.push({
-          title: story.title,
-          url: data.html_url,
-          number: data.number,
-          nodeId: data.node_id,
-          epicName: epicGroup.epic,
-          issueType: 'story',
-        });
+  const storyJobs: StoryJob[] = issues.issues.flatMap((epicGroup) =>
+    epicGroup.stories.map((story) => ({ story, epicGroup }))
+  );
 
-        if (project && epicOption) {
-          await addIssueToProject(
-            token,
-            project.projectId,
-            data.node_id,
-            project.issueTypeFieldId,
-            project.storyOptionId,
-            project.epicFieldId,
-            epicOption.id
-          ).catch(() => {
-            /* 프로젝트 추가 실패는 이슈 생성 성공으로 처리 */
-          });
-        }
-      } catch {
-        failed.push({ title: story.title, error: '이슈 생성에 실패했습니다.' });
-      }
+  const storyResults = await Promise.allSettled(
+    storyJobs.map(async ({ story, epicGroup }) => {
+      const { data } = await octokit.issues.create({
+        owner,
+        repo,
+        title: story.title,
+        body: story.body,
+        labels: story.labels,
+      });
+      return { story, epicGroup, issueData: data };
+    })
+  );
 
-      for (const task of story.children ?? []) {
-        try {
-          const { data } = await octokit.issues.create({
-            owner,
-            repo,
-            title: task.title,
-            body: task.body,
-            labels: task.labels,
-          });
-          created.push({
-            title: task.title,
-            url: data.html_url,
-            number: data.number,
-            nodeId: data.node_id,
-            epicName: epicGroup.epic,
-            issueType: 'task',
-          });
+  type CreatedStory = {
+    story: StoryJob['story'];
+    epicGroup: StoryJob['epicGroup'];
+    issueData: { number: number; html_url: string; node_id: string; id: number };
+  };
 
-          // 스토리의 하위 이슈로 등록
-          if (storyNumber !== null) {
-            await octokit
-              .request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
-                owner,
-                repo,
-                issue_number: storyNumber,
-                sub_issue_id: data.id,
-              })
-              .catch(() => {
-                /* sub-issue 연결 실패는 이슈 생성 성공으로 처리 */
-              });
-          }
+  const createdStories: CreatedStory[] = [];
 
-          if (project && epicOption) {
-            await addIssueToProject(
-              token,
-              project.projectId,
-              data.node_id,
-              project.issueTypeFieldId,
-              project.taskOptionId,
-              project.epicFieldId,
-              epicOption.id
-            ).catch(() => {
-              /* 프로젝트 추가 실패는 이슈 생성 성공으로 처리 */
-            });
-          }
-        } catch {
-          failed.push({ title: task.title, error: '이슈 생성에 실패했습니다.' });
-        }
-      }
+  for (const result of storyResults) {
+    if (result.status === 'fulfilled') {
+      const { story, epicGroup, issueData } = result.value;
+      created.push({
+        title: story.title,
+        url: issueData.html_url,
+        number: issueData.number,
+        nodeId: issueData.node_id,
+        epicName: epicGroup.epic,
+        issueType: 'story',
+      });
+      createdStories.push(result.value);
+    } else {
+      const job = storyJobs[storyResults.indexOf(result)];
+      failed.push({ title: job.story.title, error: '이슈 생성에 실패했습니다.' });
     }
   }
 
-  const result: CreateIssuesResult = { created, failed };
-  return Response.json(result);
+  // ── Step 2: 모든 Task 병렬 생성 ──────────────────────────────────────
+
+  type TaskJob = {
+    task: NonNullable<StoryJob['story']['children']>[number];
+    epicGroup: StoryJob['epicGroup'];
+    storyNumber: number;
+  };
+
+  const taskJobs: TaskJob[] = createdStories.flatMap(({ story, epicGroup, issueData }) =>
+    (story.children ?? []).map((task) => ({
+      task,
+      epicGroup,
+      storyNumber: issueData.number,
+    }))
+  );
+
+  const taskResults = await Promise.allSettled(
+    taskJobs.map(async ({ task, epicGroup, storyNumber }) => {
+      const { data } = await octokit.issues.create({
+        owner,
+        repo,
+        title: task.title,
+        body: task.body,
+        labels: task.labels,
+      });
+      return { task, epicGroup, storyNumber, issueData: data };
+    })
+  );
+
+  type CreatedTask = {
+    task: TaskJob['task'];
+    epicGroup: TaskJob['epicGroup'];
+    storyNumber: number;
+    issueData: { number: number; html_url: string; node_id: string; id: number };
+  };
+
+  const createdTasks: CreatedTask[] = [];
+
+  for (const result of taskResults) {
+    if (result.status === 'fulfilled') {
+      const { task, epicGroup, issueData } = result.value;
+      created.push({
+        title: task.title,
+        url: issueData.html_url,
+        number: issueData.number,
+        nodeId: issueData.node_id,
+        epicName: epicGroup.epic,
+        issueType: 'task',
+      });
+      createdTasks.push(result.value);
+    } else {
+      const job = taskJobs[taskResults.indexOf(result)];
+      failed.push({ title: job.task.title, error: '이슈 생성에 실패했습니다.' });
+    }
+  }
+
+  // ── Step 3: 프로젝트 추가 + sub_issue 연결 병렬 처리 (fire-and-forget) ──
+
+  const postCreationJobs: Promise<void>[] = [];
+
+  if (project) {
+    for (const { epicGroup, issueData } of createdStories) {
+      const epicOption = project.epicOptions.find((o) => o.name === epicGroup.epic);
+      if (!epicOption) continue;
+      postCreationJobs.push(
+        addIssueToProject(
+          token,
+          project.projectId,
+          issueData.node_id,
+          project.issueTypeFieldId,
+          project.storyOptionId,
+          project.epicFieldId,
+          epicOption.id
+        ).catch(() => {})
+      );
+    }
+
+    for (const { epicGroup, issueData } of createdTasks) {
+      const epicOption = project.epicOptions.find((o) => o.name === epicGroup.epic);
+      if (!epicOption) continue;
+      postCreationJobs.push(
+        addIssueToProject(
+          token,
+          project.projectId,
+          issueData.node_id,
+          project.issueTypeFieldId,
+          project.taskOptionId,
+          project.epicFieldId,
+          epicOption.id
+        ).catch(() => {})
+      );
+    }
+  }
+
+  for (const { storyNumber, issueData } of createdTasks) {
+    postCreationJobs.push(
+      octokit
+        .request('POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues', {
+          owner,
+          repo,
+          issue_number: storyNumber,
+          sub_issue_id: issueData.id,
+        })
+        .then(() => {})
+        .catch(() => {})
+    );
+  }
+
+  await Promise.all(postCreationJobs);
+
+  return Response.json({ created, failed } satisfies CreateIssuesResult);
 }

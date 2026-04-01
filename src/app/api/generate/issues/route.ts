@@ -10,6 +10,10 @@ import {
 import { buildIssuesSystemPrompt, buildIssuesUserPrompt } from '@/features/issues/prompt';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 
+const PROVIDER_OPTIONS = {
+  google: { structuredOutputs: false } satisfies GoogleLanguageModelOptions,
+};
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -28,38 +32,33 @@ export async function POST(req: Request) {
     return Response.json({ error: '기획서 데이터가 올바르지 않습니다.' }, { status: 400 });
   }
 
-  const isSplit = repoStructure === 'split';
+  const systemPrompt = buildIssuesSystemPrompt(repoStructure);
+  const userPrompt = buildIssuesUserPrompt(planning);
 
   try {
+    if (repoStructure === 'split') {
+      const { output } = await generateText({
+        model: gemini,
+        maxRetries: 0,
+        providerOptions: PROVIDER_OPTIONS,
+        output: Output.object({ schema: SplitGenerateIssuesSchema }),
+        system: systemPrompt,
+        prompt: userPrompt,
+      });
+      if (!output) return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
+      return Response.json({ type: 'split', frontend: output.frontend, backend: output.backend });
+    }
+
     const { output } = await generateText({
       model: gemini,
       maxRetries: 0,
-      providerOptions: {
-        google: {
-          structuredOutputs: false,
-        } satisfies GoogleLanguageModelOptions,
-      },
-      output: Output.object({
-        schema: isSplit ? SplitGenerateIssuesSchema : GenerateIssuesSchema,
-      }),
-      system: buildIssuesSystemPrompt(repoStructure),
-      prompt: buildIssuesUserPrompt(planning),
+      providerOptions: PROVIDER_OPTIONS,
+      output: Output.object({ schema: GenerateIssuesSchema }),
+      system: systemPrompt,
+      prompt: userPrompt,
     });
-
-    if (!output) {
-      return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
-    }
-
-    // IssuesResult 형태로 래핑하여 반환
-    if (isSplit) {
-      const splitOutput = output as {
-        frontend: { issues: unknown[] };
-        backend: { issues: unknown[] };
-      };
-      return Response.json({ type: 'split', ...splitOutput });
-    }
-
-    return Response.json({ type: 'monorepo', ...(output as { issues: unknown[] }) });
+    if (!output) return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
+    return Response.json({ type: 'monorepo', issues: output.issues });
   } catch (error: unknown) {
     console.error('[POST /api/generate/issues]', error);
 
