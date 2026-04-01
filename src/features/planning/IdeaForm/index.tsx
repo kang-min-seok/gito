@@ -9,10 +9,12 @@ import {
 } from '@/constants/planning';
 import type { GeneratePlanningResult, QuestionItem, AnswerItem } from '@/types/planning';
 import Button from '@/components/Button';
+import PlanningLoadingCard from '@/features/planning/PlanningLoadingCard';
+import type { PlanningLoadingContext } from '@/features/planning/PlanningLoadingCard';
 
 type FormState =
   | { status: 'idle' }
-  | { status: 'loading' }
+  | { status: 'loading'; context: PlanningLoadingContext }
   | {
       status: 'question';
       questions: QuestionItem[];
@@ -34,7 +36,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
   async function submitIdea(answers?: AnswerItem[], currentRound = 0) {
     if (idea.trim().length === 0) return;
 
-    setFormState({ status: 'loading' });
+    setFormState({ status: 'loading', context: answers ? 'question' : 'initial' });
 
     try {
       const res = await fetch('/api/generate/planning', {
@@ -93,7 +95,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
     }));
     const currentRound = formState.round;
 
-    setFormState({ status: 'loading' });
+    setFormState({ status: 'loading', context: 'question' });
     await new Promise<void>((resolve) => setTimeout(resolve, QUESTION_RETRY_DELAY_MS));
     await submitIdea(answers, currentRound);
   }
@@ -127,43 +129,7 @@ export default function IdeaForm({ userName }: IdeaFormProps) {
      Step 2_1: AI 기획서 생성 중 로딩 화면
   ──────────────────────────────────────── */
   if (formState.status === 'loading') {
-    return (
-      <main className="flex items-center justify-center min-h-[calc(100vh-120px)] px-6 py-10">
-        <div className="w-full max-w-[440px] bg-[#161b22] border border-[#30363d] rounded-2xl p-8 flex flex-col items-center gap-6">
-          {/* 아이콘 */}
-          <div className="w-14 h-14 rounded-full border-4 border-[#6762a7]/30 border-t-[#6762a7] animate-spin" />
-
-          <div className="text-center flex flex-col gap-2">
-            <p className="text-lg font-semibold text-[#f1f5f9]">AI가 기획서를 작성 중입니다...</p>
-            <p className="text-[13px] text-[#94a3b8]">
-              입력하신 아이디어를 분석하고 기획서를 생성하고 있습니다.
-            </p>
-          </div>
-
-          {/* 현재 진행 단계 */}
-          <div className="w-full bg-[#6762a7]/20 rounded-lg px-4 py-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#6762a7] animate-pulse shrink-0" />
-            <span className="text-[13px] text-[#f1f5f9]">기획서 초안 작성 중...</span>
-          </div>
-
-          <p className="text-[12px] text-[#64748b]">
-            잠시만 기다려 주세요. 보통 1-2분 정도 소요됩니다.
-          </p>
-
-          {/* 진행 단계 로그 */}
-          <div className="w-full flex flex-col gap-2 border-t border-[#30363d] pt-4">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#3fb950] shrink-0" />
-              <span className="text-[12px] text-[#94a3b8]">아이디어 분석 완료</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#6762a7] animate-pulse shrink-0" />
-              <span className="text-[12px] text-[#94a3b8]">기획서 작성 중...</span>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
+    return <PlanningLoadingCard context={formState.context} />;
   }
 
   /* ────────────────────────────────────────

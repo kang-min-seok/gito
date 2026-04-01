@@ -23,7 +23,6 @@ export default function PlanningPage() {
     setRepoStructure,
     isGenerating,
     generateError,
-    handleBack,
     handleGenerateIssues,
   } = usePlanningPage();
 
@@ -49,54 +48,37 @@ export default function PlanningPage() {
       <PlanningViewer markdownContents={markdownContents} onMarkdownChange={setMarkdownContents} />
 
       <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-[#30363d]">
-        {/* 레포 구조 선택 */}
-        <div className="flex items-center gap-6 px-6 pt-4 pb-3">
-          <span className="text-[12px] font-semibold text-[#64748b] uppercase tracking-widest shrink-0">
-            레포 구조
-          </span>
-          <div className="flex gap-3">
-            {REPO_STRUCTURE_OPTIONS.map(({ value, label, description }) => {
-              const isSelected = repoStructure === value;
-              return (
-                <button
-                  key={value}
-                  onClick={() => setRepoStructure(value)}
-                  className={`flex items-center gap-2.5 px-4 py-2 rounded-lg border text-left transition-colors cursor-pointer ${
-                    isSelected
-                      ? 'border-[#6762a7] bg-[#6762a7]/10'
-                      : 'border-[#30363d] bg-transparent hover:border-[#6762a7]/40 hover:bg-[#161b22]'
-                  }`}
-                >
-                  <span
-                    className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      isSelected ? 'border-[#6762a7]' : 'border-[#64748b]'
+        <div className="flex items-center justify-between px-6 py-3 gap-4">
+          {/* 레포 구조 선택 (세그먼트 컨트롤) */}
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-widest">
+              레포 구조
+            </span>
+            <div className="flex bg-[#161b22] border border-[#30363d] rounded-lg p-0.5">
+              {REPO_STRUCTURE_OPTIONS.map(({ value, label }) => {
+                const isSelected = repoStructure === value;
+                return (
+                  <button
+                    key={value}
+                    onClick={() => setRepoStructure(value)}
+                    className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#6762a7] text-[#f1f5f9]'
+                        : 'text-[#94a3b8] hover:text-[#f1f5f9]'
                     }`}
                   >
-                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#6762a7]" />}
-                  </span>
-                  <div>
-                    <p
-                      className={`text-[13px] font-medium leading-none ${isSelected ? 'text-[#f1f5f9]' : 'text-[#94a3b8]'}`}
-                    >
-                      {label}
-                    </p>
-                    <p className="text-[11px] text-[#64748b] mt-1 leading-none">{description}</p>
-                  </div>
-                </button>
-              );
-            })}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        {/* 액션 버튼 */}
-        <div className="flex justify-between items-center px-6 pb-4">
+          {/* 에러 + 액션 버튼 */}
           <div className="flex items-center gap-3">
-            <Button variant="secondary" size="sm" onClick={handleBack}>
-              ↺ 다시 생성
-            </Button>
-            {generateError && <p className="text-red-400 text-sm">{generateError}</p>}
+            {generateError && <p className="text-red-400 text-[12px]">{generateError}</p>}
+            <Button onClick={handleGenerateIssues}>수정 완료 →</Button>
           </div>
-          <Button onClick={handleGenerateIssues}>수정 완료 →</Button>
         </div>
       </div>
     </main>

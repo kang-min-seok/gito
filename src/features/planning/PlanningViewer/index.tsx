@@ -22,8 +22,10 @@ export default function PlanningViewer({
   }
 
   return (
-    <div className="flex flex-1 px-6 pb-24 min-h-0">
-      <TabSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="flex flex-1 px-6 pb-20 min-h-0">
+      <div className="sticky top-30 self-start pt-4">
+        <TabSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      </div>
       <DocArea
         activeTab={activeTab}
         markdownContent={markdownContents[activeTab]}
