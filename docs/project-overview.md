@@ -120,11 +120,11 @@ src/
 
 ### 4-1. 페이지 간 데이터 (SessionStorage)
 
-| 스토리지 키            | 상수명                 | 내용                                      |
-| ---------------------- | ---------------------- | ----------------------------------------- |
-| `gito_planning_result` | `PLANNING_STORAGE_KEY` | PlanningResult (기획서)                   |
-| `gito_issues_result`   | `ISSUES_STORAGE_KEY`   | GenerateIssuesResult (에픽/스토리/태스크) |
-| `gito_selected_repo`   | `SELECTED_REPO_KEY`    | GitHubRepoItem (선택된 레포)              |
+| 스토리지 키            | 상수명                 | 내용                                                         |
+| ---------------------- | ---------------------- | ------------------------------------------------------------ |
+| `gito_planning_result` | `PLANNING_STORAGE_KEY` | PlanningResult (기획서)                                      |
+| `gito_issues_result`   | `ISSUES_STORAGE_KEY`   | IssuesResult — `MonorepoIssuesResult` \| `SplitIssuesResult` |
+| `gito_selected_repo`   | `SELECTED_REPO_KEY`    | 모노레포: `GitHubRepoItem` / split: `{ frontend, backend }`  |
 
 > ⚠️ sessionStorage는 SSR에서 접근 불가. 반드시 `useEffect` 내부에서 사용.
 
@@ -162,21 +162,34 @@ src/
 
 [Step 2 — PlanningPage]
   sessionStorage 읽기 → 기획서 표시
-  POST /api/generate/issues { planning }
+  레포 구조 선택 (모노레포 | 프론트엔드·백엔드 분리)
+  POST /api/generate/issues { planning, repoStructure }
+    → 모노레포: IssuesResult { type:'monorepo', issues }
+    → split:    IssuesResult { type:'split', frontend, backend }
     → sessionStorage 저장 → /issues
 
 [Step 3 — IssuesPage]
-  sessionStorage 읽기 → 에픽/스토리/태스크 표시
+  sessionStorage 읽기 → IssuesResult 파싱
+  모노레포: 기존 에픽/스토리/태스크 UI
+  split: 프론트엔드 | 백엔드 탭 전환 후 각각 편집
   인라인 편집 → sessionStorage 업데이트
   "이슈 등록" 클릭 → /repo-select
 
 [Step 4 — RepoSelectPage]
   GET /api/github/repos + /api/github/orgs
-  레포 선택 → sessionStorage 저장 → /result
+  모노레포: 레포 1개 선택 → sessionStorage 저장
+  split: 프론트엔드/백엔드 탭으로 레포 각각 선택 → { frontend, backend } 저장
+  → /result
 
 [Step 5 — ResultPage]
-  Phase 1: POST /api/github/setup-project (프로젝트 + 커스텀 필드 생성)
-  Phase 2: POST /api/github/create-issues (이슈 일괄 생성 + 프로젝트 연결)
+  모노레포:
+    Phase 1: POST /api/github/setup-project
+    Phase 2: POST /api/github/create-issues
+  split (순차):
+    Phase 1: 프론트엔드 setup-project
+    Phase 2: 프론트엔드 create-issues
+    Phase 3: 백엔드 setup-project
+    Phase 4: 백엔드 create-issues
 ```
 
 ---
@@ -275,11 +288,15 @@ TechChallengeItem; // { title, description }
 
 ```typescript
 IssueType; // 'story' | 'task'
+RepoStructure; // 'monorepo' | 'split'
 GitHubRepo; // { owner, name, fullName }
 IssuePayload; // { title, body, labels, type }
 GeneratedIssue; // IssuePayload + children? (재귀)
 EpicGroup; // { epic, stories: GeneratedIssue[] }
-GenerateIssuesResult; // { issues: EpicGroup[] }
+GenerateIssuesResult; // { issues: EpicGroup[] } — AI 응답 원형
+MonorepoIssuesResult; // { type: 'monorepo', issues: EpicGroup[] }
+SplitIssuesResult; // { type: 'split', frontend: { issues }, backend: { issues } }
+IssuesResult; // MonorepoIssuesResult | SplitIssuesResult — sessionStorage 저장 타입
 GitHubRepoItem; // 레포 정보 (name, owner, isPrivate, updatedAt 등)
 GitHubOwnerInfo; // { login, orgs }
 CreatedIssue; // 생성된 이슈 (url, number 포함)
@@ -342,9 +359,10 @@ SetupProjectResult; // 프로젝트 설정 데이터
 ### 9-2. 이슈 생성 (`/api/generate/issues`)
 
 - 모델: `gemini-2.5-flash`
-- 입력: `{ planning: PlanningResult }`
-- 출력: `GenerateIssuesResult` (Zod 검증)
+- 입력: `{ planning: PlanningResult, repoStructure: 'monorepo' | 'split' }`
+- 출력: `IssuesResult` — `{ type:'monorepo', issues }` 또는 `{ type:'split', frontend, backend }` (Zod 검증)
 - 구조: 에픽 → 스토리(issue) → 태스크(sub-issue) 계층
+- split 모드: 프론트엔드(UI/화면/상태관리)와 백엔드(API/DB/인증) 이슈를 분리 생성
 
 ---
 
@@ -396,20 +414,31 @@ IssueCard는 `children` prop이 있을 경우 자기 자신을 재귀 렌더한�
 
 ## 12. 파일 변경 이력
 
-| 날짜       | 파일                                              | 변경 내용                                               |
-| ---------- | ------------------------------------------------- | ------------------------------------------------------- |
-| 2026-03-26 | `components/Stepper/index.tsx`                    | 신규 추가 — 5단계 진행 스테퍼                           |
-| 2026-03-26 | `app/globals.css`                                 | 디자인 전체 수정 (Figma 기반)                           |
-| 2026-04-01 | `docs/project-overview.md`                        | 최초 작성                                               |
-| 2026-04-01 | `app/planning/page.tsx`                           | 리팩토링 — 훅 분리, 컴포넌트 분리로 간소화              |
-| 2026-04-01 | `features/planning/constants.ts`                  | 신규 추가 — SidebarTab 타입, SIDEBAR_TABS, TAB_FILENAME |
-| 2026-04-01 | `features/planning/hooks/usePlanningPage.ts`      | 신규 추가 — markdown 상태 관리 + 역파싱 + 이슈 생성     |
-| 2026-04-01 | `features/planning/utils/planningMarkdown.ts`     | 신규 추가 — PlanningResult ↔ markdown 변환 유틸         |
-| 2026-04-01 | `features/planning/GeneratingCard.tsx`            | 신규 추가 — 이슈 생성 중 로딩 UI                        |
-| 2026-04-01 | `features/planning/PlanningViewer/index.tsx`      | 신규 추가 — markdownContents 기반 뷰어 조립             |
-| 2026-04-01 | `features/planning/PlanningViewer/TabSidebar.tsx` | 신규 추가 — 탭 사이드바                                 |
-| 2026-04-01 | `features/planning/PlanningViewer/DocArea.tsx`    | 신규 추가 — Raw textarea / Preview react-markdown 토글  |
-| 2026-04-01 | `docs/adr-001-raw-preview-editor.md`              | 신규 추가 + 수정 — react-markdown 채택 근거 ADR         |
+| 날짜       | 파일                                              | 변경 내용                                                                        |
+| ---------- | ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 2026-03-26 | `components/Stepper/index.tsx`                    | 신규 추가 — 5단계 진행 스테퍼                                                    |
+| 2026-03-26 | `app/globals.css`                                 | 디자인 전체 수정 (Figma 기반)                                                    |
+| 2026-04-01 | `docs/project-overview.md`                        | 최초 작성                                                                        |
+| 2026-04-01 | `app/planning/page.tsx`                           | 리팩토링 — 훅 분리, 컴포넌트 분리로 간소화                                       |
+| 2026-04-01 | `features/planning/constants.ts`                  | 신규 추가 — SidebarTab 타입, SIDEBAR_TABS, TAB_FILENAME                          |
+| 2026-04-01 | `features/planning/hooks/usePlanningPage.ts`      | 신규 추가 — markdown 상태 관리 + 역파싱 + 이슈 생성                              |
+| 2026-04-01 | `features/planning/utils/planningMarkdown.ts`     | 신규 추가 — PlanningResult ↔ markdown 변환 유틸                                  |
+| 2026-04-01 | `features/planning/GeneratingCard.tsx`            | 신규 추가 — 이슈 생성 중 로딩 UI                                                 |
+| 2026-04-01 | `features/planning/PlanningViewer/index.tsx`      | 신규 추가 — markdownContents 기반 뷰어 조립                                      |
+| 2026-04-01 | `features/planning/PlanningViewer/TabSidebar.tsx` | 신규 추가 — 탭 사이드바                                                          |
+| 2026-04-01 | `features/planning/PlanningViewer/DocArea.tsx`    | 신규 추가 — Raw textarea / Preview react-markdown 토글                           |
+| 2026-04-01 | `docs/adr-001-raw-preview-editor.md`              | 신규 추가 + 수정 — react-markdown 채택 근거 ADR                                  |
+| 2026-04-01 | `types/github.ts`                                 | RepoStructure, MonorepoIssuesResult, SplitIssuesResult, IssuesResult 추가        |
+| 2026-04-01 | `constants/planning.ts`                           | REPO_STRUCTURE_KEY 추가                                                          |
+| 2026-04-01 | `features/issues/schemas.ts`                      | SplitGenerateIssuesSchema 추가; GenerateIssuesRequestSchema에 repoStructure 추가 |
+| 2026-04-01 | `features/issues/prompt.ts`                       | split 모드 시스템 프롬프트 분기 추가                                             |
+| 2026-04-01 | `app/api/generate/issues/route.ts`                | repoStructure 분기 처리, IssuesResult 래핑 반환                                  |
+| 2026-04-01 | `features/planning/hooks/usePlanningPage.ts`      | repoStructure 상태 추가, API 요청에 포함                                         |
+| 2026-04-01 | `app/planning/page.tsx`                           | 레포 구조 선택 UI (모노레포 / 분리) 추가                                         |
+| 2026-04-01 | `features/issues/utils/updateIssuesStorage.ts`    | IssuesResult 타입으로 업데이트                                                   |
+| 2026-04-01 | `app/issues/page.tsx`                             | split 모드 프론트엔드/백엔드 탭 추가                                             |
+| 2026-04-01 | `app/repo-select/page.tsx`                        | split 모드 레포 2개 선택 UI 추가                                                 |
+| 2026-04-01 | `app/result/page.tsx`                             | split 모드 순차 이슈 생성 + 4단계 로딩/완료 UI 추가                              |
 
 ### Deprecated
 
@@ -422,4 +451,4 @@ IssueCard는 `children` prop이 있을 경우 자기 자신을 재귀 렌더한�
 
 ---
 
-_최종 업데이트: 2026-04-01_
+_최종 업데이트: 2026-04-01 (레포 구조 선택 기능 추가)_

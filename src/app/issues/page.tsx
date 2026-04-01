@@ -3,15 +3,18 @@
 import { useEffect, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ISSUES_STORAGE_KEY } from '@/constants/planning';
-import type { GenerateIssuesResult, GeneratedIssue } from '@/types/github';
-import { GenerateIssuesSchema } from '@/features/issues/schemas';
+import type { EpicGroup, GeneratedIssue, IssuesResult } from '@/types/github';
+import { GenerateIssuesSchema, SplitGenerateIssuesSchema } from '@/features/issues/schemas';
 import IssueCard from '@/features/issues/IssueCard';
 import { saveIssuesToStorage } from '@/features/issues/utils/updateIssuesStorage';
 import Button from '@/components/Button';
 
+type SplitTarget = 'frontend' | 'backend';
+
 export default function IssuesPage() {
   const router = useRouter();
-  const [data, setData] = useState<GenerateIssuesResult | null>(null);
+  const [data, setData] = useState<IssuesResult | null>(null);
+  const [splitTarget, setSplitTarget] = useState<SplitTarget>('frontend');
   const [editingEpicIndex, setEditingEpicIndex] = useState<number | null>(null);
   const [epicDraft, setEpicDraft] = useState('');
   const [selectedEpicIndex, setSelectedEpicIndex] = useState(0);
@@ -23,28 +26,59 @@ export default function IssuesPage() {
       return;
     }
     try {
-      const parsed = JSON.parse(raw);
-      const result = GenerateIssuesSchema.parse(parsed);
-      startTransition(() => {
-        setData(result);
-      });
+      const parsed = JSON.parse(raw) as { type?: string };
+      if (parsed.type === 'split') {
+        const result = SplitGenerateIssuesSchema.parse(parsed);
+        startTransition(() =>
+          setData({ type: 'split', frontend: result.frontend, backend: result.backend })
+        );
+      } else {
+        const result = GenerateIssuesSchema.parse(parsed);
+        startTransition(() => setData({ type: 'monorepo', issues: result.issues }));
+      }
     } catch {
       router.replace('/');
     }
   }, [router]);
 
+  // 현재 보고 있는 EpicGroup[] — split이면 탭에 따라 분기
+  const currentIssues: EpicGroup[] = (() => {
+    if (!data) return [];
+    if (data.type === 'monorepo') return data.issues;
+    return splitTarget === 'frontend' ? data.frontend.issues : data.backend.issues;
+  })();
+
   const handleStoryUpdate = (epicIndex: number, storyIndex: number, updated: GeneratedIssue) => {
     if (!data) return;
-    const newIssues = data.issues.map((group, i) => {
-      if (i !== epicIndex) return group;
-      return {
-        ...group,
-        stories: group.stories.map((story, j) => (j === storyIndex ? updated : story)),
+
+    if (data.type === 'monorepo') {
+      const newIssues = data.issues.map((group, i) => {
+        if (i !== epicIndex) return group;
+        return {
+          ...group,
+          stories: group.stories.map((story, j) => (j === storyIndex ? updated : story)),
+        };
+      });
+      const newData: IssuesResult = { type: 'monorepo', issues: newIssues };
+      startTransition(() => setData(newData));
+      saveIssuesToStorage(newData);
+    } else {
+      const targetKey = splitTarget;
+      const newIssues = data[targetKey].issues.map((group, i) => {
+        if (i !== epicIndex) return group;
+        return {
+          ...group,
+          stories: group.stories.map((story, j) => (j === storyIndex ? updated : story)),
+        };
+      });
+      const newData: IssuesResult = {
+        type: 'split',
+        frontend: targetKey === 'frontend' ? { issues: newIssues } : data.frontend,
+        backend: targetKey === 'backend' ? { issues: newIssues } : data.backend,
       };
-    });
-    const newData = { issues: newIssues };
-    startTransition(() => setData(newData));
-    saveIssuesToStorage(newData);
+      startTransition(() => setData(newData));
+      saveIssuesToStorage(newData);
+    }
   };
 
   const handleEpicEditStart = (index: number, currentEpic: string) => {
@@ -54,16 +88,39 @@ export default function IssuesPage() {
 
   const handleEpicSave = (epicIndex: number) => {
     if (!data) return;
-    const newIssues = data.issues.map((group, i) =>
-      i === epicIndex ? { ...group, epic: epicDraft } : group
-    );
-    const newData = { issues: newIssues };
-    startTransition(() => setData(newData));
-    saveIssuesToStorage(newData);
+
+    if (data.type === 'monorepo') {
+      const newIssues = data.issues.map((group, i) =>
+        i === epicIndex ? { ...group, epic: epicDraft } : group
+      );
+      const newData: IssuesResult = { type: 'monorepo', issues: newIssues };
+      startTransition(() => setData(newData));
+      saveIssuesToStorage(newData);
+    } else {
+      const targetKey = splitTarget;
+      const newIssues = data[targetKey].issues.map((group, i) =>
+        i === epicIndex ? { ...group, epic: epicDraft } : group
+      );
+      const newData: IssuesResult = {
+        type: 'split',
+        frontend: targetKey === 'frontend' ? { issues: newIssues } : data.frontend,
+        backend: targetKey === 'backend' ? { issues: newIssues } : data.backend,
+      };
+      startTransition(() => setData(newData));
+      saveIssuesToStorage(newData);
+    }
+
     setEditingEpicIndex(null);
   };
 
   const handleEpicCancel = () => {
+    setEditingEpicIndex(null);
+  };
+
+  // 탭 전환 시 에픽 선택 초기화
+  const handleSplitTargetChange = (target: SplitTarget) => {
+    setSplitTarget(target);
+    setSelectedEpicIndex(0);
     setEditingEpicIndex(null);
   };
 
@@ -75,7 +132,7 @@ export default function IssuesPage() {
     );
   }
 
-  const currentEpicGroup = data.issues[selectedEpicIndex];
+  const currentEpicGroup = currentIssues[selectedEpicIndex];
 
   return (
     <main className="flex flex-col min-h-[calc(100vh-120px)]">
@@ -87,15 +144,37 @@ export default function IssuesPage() {
         </p>
       </div>
 
+      {/* split 탭 */}
+      {data.type === 'split' && (
+        <div className="px-6 pb-4 flex gap-1">
+          {(['frontend', 'backend'] as SplitTarget[]).map((target) => {
+            const isActive = splitTarget === target;
+            return (
+              <button
+                key={target}
+                onClick={() => handleSplitTargetChange(target)}
+                className={`px-4 py-1.5 rounded-lg text-[13px] font-medium cursor-pointer border transition-colors ${
+                  isActive
+                    ? 'bg-[#6762a7] text-white border-[#6762a7]'
+                    : 'bg-transparent text-[#94a3b8] border-[#30363d] hover:bg-[#161b22] hover:text-[#f1f5f9]'
+                }`}
+              >
+                {target === 'frontend' ? '프론트엔드' : '백엔드'}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* 본문: 사이드바 + 콘텐츠 */}
       <div className="flex flex-1 gap-0 px-6 pb-24 min-h-0">
         {/* 왼쪽 에픽 사이드바 */}
-        <div className="w-[260px] shrink-0 flex flex-col gap-1 pr-4">
+        <div className="w-65 shrink-0 flex flex-col gap-1 pr-4">
           <p className="text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 px-1">
             에픽 목록
           </p>
 
-          {data.issues.map((group, i) => {
+          {currentIssues.map((group, i) => {
             const isActive = i === selectedEpicIndex;
             const isEditing = editingEpicIndex === i;
 
@@ -149,24 +228,30 @@ export default function IssuesPage() {
         </div>
 
         {/* 오른쪽 스토리/태스크 영역 */}
-        <div className="flex-1 min-w-0 flex flex-col gap-3">
-          {/* 에픽 헤더 */}
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-[17px] font-bold text-[#f1f5f9]">{currentEpicGroup.epic}</h2>
-            <span className="text-[12px] px-2.5 py-0.5 rounded-full bg-[#6762a7]/20 text-[#a89fd8] font-medium">
-              {currentEpicGroup.stories.length} stories
-            </span>
-          </div>
+        {currentEpicGroup ? (
+          <div className="flex-1 min-w-0 flex flex-col gap-3">
+            {/* 에픽 헤더 */}
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-[17px] font-bold text-[#f1f5f9]">{currentEpicGroup.epic}</h2>
+              <span className="text-[12px] px-2.5 py-0.5 rounded-full bg-[#6762a7]/20 text-[#a89fd8] font-medium">
+                {currentEpicGroup.stories.length} stories
+              </span>
+            </div>
 
-          {/* 스토리 카드 목록 */}
-          {currentEpicGroup.stories.map((story, j) => (
-            <IssueCard
-              key={j}
-              issue={story}
-              onUpdate={(updated) => handleStoryUpdate(selectedEpicIndex, j, updated)}
-            />
-          ))}
-        </div>
+            {/* 스토리 카드 목록 */}
+            {currentEpicGroup.stories.map((story, j) => (
+              <IssueCard
+                key={j}
+                issue={story}
+                onUpdate={(updated) => handleStoryUpdate(selectedEpicIndex, j, updated)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <p className="text-[#64748b] text-sm">에픽을 선택하세요.</p>
+          </div>
+        )}
       </div>
 
       {/* 하단 고정 푸터 */}

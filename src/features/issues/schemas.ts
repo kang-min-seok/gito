@@ -24,8 +24,14 @@ export const GenerateIssuesSchema = z.object({
   issues: z.array(EpicGroupSchema),
 });
 
+export const SplitGenerateIssuesSchema = z.object({
+  frontend: GenerateIssuesSchema,
+  backend: GenerateIssuesSchema,
+});
+
 export const GenerateIssuesRequestSchema = z.object({
   planning: GeneratePlanningSchema,
+  repoStructure: z.enum(['monorepo', 'split']).default('monorepo'),
 });
 
 const ProjectInfoSchema = z.object({

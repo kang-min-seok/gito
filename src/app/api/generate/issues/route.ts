@@ -2,9 +2,17 @@ import { generateText, Output } from 'ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { gemini } from '@/lib/ai';
-import { GenerateIssuesRequestSchema, GenerateIssuesSchema } from '@/features/issues/schemas';
+import {
+  GenerateIssuesRequestSchema,
+  GenerateIssuesSchema,
+  SplitGenerateIssuesSchema,
+} from '@/features/issues/schemas';
 import { buildIssuesSystemPrompt, buildIssuesUserPrompt } from '@/features/issues/prompt';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+
+const PROVIDER_OPTIONS = {
+  google: { structuredOutputs: false } satisfies GoogleLanguageModelOptions,
+};
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -18,33 +26,39 @@ export async function POST(req: Request) {
     return Response.json({ error: '기획서 데이터가 올바르지 않습니다.' }, { status: 400 });
   }
 
-  const { planning } = parseResult.data;
+  const { planning, repoStructure } = parseResult.data;
 
   if (planning.type !== 'planning') {
     return Response.json({ error: '기획서 데이터가 올바르지 않습니다.' }, { status: 400 });
   }
 
+  const systemPrompt = buildIssuesSystemPrompt(repoStructure);
+  const userPrompt = buildIssuesUserPrompt(planning);
+
   try {
+    if (repoStructure === 'split') {
+      const { output } = await generateText({
+        model: gemini,
+        maxRetries: 0,
+        providerOptions: PROVIDER_OPTIONS,
+        output: Output.object({ schema: SplitGenerateIssuesSchema }),
+        system: systemPrompt,
+        prompt: userPrompt,
+      });
+      if (!output) return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
+      return Response.json({ type: 'split', frontend: output.frontend, backend: output.backend });
+    }
+
     const { output } = await generateText({
       model: gemini,
       maxRetries: 0,
-      providerOptions: {
-        google: {
-          structuredOutputs: false,
-        } satisfies GoogleLanguageModelOptions,
-      },
-      output: Output.object({
-        schema: GenerateIssuesSchema,
-      }),
-      system: buildIssuesSystemPrompt(),
-      prompt: buildIssuesUserPrompt(planning),
+      providerOptions: PROVIDER_OPTIONS,
+      output: Output.object({ schema: GenerateIssuesSchema }),
+      system: systemPrompt,
+      prompt: userPrompt,
     });
-
-    if (!output) {
-      return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
-    }
-
-    return Response.json(output);
+    if (!output) return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
+    return Response.json({ type: 'monorepo', issues: output.issues });
   } catch (error: unknown) {
     console.error('[POST /api/generate/issues]', error);
 

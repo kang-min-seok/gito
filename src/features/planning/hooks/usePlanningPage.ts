@@ -14,13 +14,14 @@ import {
 } from '@/features/planning/utils/planningMarkdown';
 import type { SidebarTab } from '@/features/planning/constants';
 import type { PlanningResult } from '@/types/planning';
-import type { GenerateIssuesResult } from '@/types/github';
+import type { IssuesResult, RepoStructure } from '@/types/github';
 
 export type MarkdownContents = Record<SidebarTab, string>;
 
 export function usePlanningPage() {
   const router = useRouter();
   const [markdownContents, setMarkdownContents] = useState<MarkdownContents | null>(null);
+  const [repoStructure, setRepoStructure] = useState<RepoStructure>('monorepo');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
@@ -77,14 +78,14 @@ export function usePlanningPage() {
         const res = await fetch('/api/generate/issues', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planning: planningData }),
+          body: JSON.stringify({ planning: planningData, repoStructure }),
         });
         if (!res.ok) {
           const { error } = (await res.json()) as { error: string };
           setGenerateError(error ?? '이슈 생성 중 오류가 발생했습니다.');
           return;
         }
-        const result = (await res.json()) as GenerateIssuesResult;
+        const result = (await res.json()) as IssuesResult;
         sessionStorage.setItem(ISSUES_STORAGE_KEY, JSON.stringify(result));
         router.push('/issues');
       } catch {
@@ -98,6 +99,8 @@ export function usePlanningPage() {
   return {
     markdownContents,
     setMarkdownContents,
+    repoStructure,
+    setRepoStructure,
     isGenerating,
     generateError,
     handleBack,
