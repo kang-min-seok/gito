@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { TAB_FILENAME, type SidebarTab } from '@/features/planning/constants';
+
+type ExportFormat = 'md';
+
+const EXPORT_FORMATS: { format: ExportFormat; label: string; mime: string }[] = [
+  { format: 'md', label: 'Markdown (.md)', mime: 'text/markdown;charset=utf-8' },
+];
 
 const markdownComponents: Components = {
   h1: ({ children }) => (
@@ -55,11 +61,38 @@ export interface DocAreaProps {
 
 export default function DocArea({ activeTab, markdownContent, onMarkdownChange }: DocAreaProps) {
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   // 탭 전환 시 Preview 모드로 초기화
   useEffect(() => {
     setViewMode('preview');
   }, [activeTab]);
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!isExportOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isExportOpen]);
+
+  function handleExport(format: ExportFormat) {
+    const { mime } = EXPORT_FORMATS.find((f) => f.format === format)!;
+    const filename = TAB_FILENAME[activeTab];
+    const blob = new Blob([markdownContent], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    setIsExportOpen(false);
+  }
 
   return (
     <div className="flex-1 min-w-0 bg-[#161b22] border border-[#30363d] rounded-xl overflow-hidden flex flex-col">
@@ -69,27 +102,77 @@ export default function DocArea({ activeTab, markdownContent, onMarkdownChange }
           <span>📄</span>
           <span>{TAB_FILENAME[activeTab]}</span>
         </div>
-        <div className="flex border border-[#30363d] rounded-md overflow-hidden text-[12px]">
-          <button
-            onClick={() => setViewMode('raw')}
-            className={`px-3 py-1 transition-colors cursor-pointer ${
-              viewMode === 'raw'
-                ? 'bg-[#6762a7] text-white'
-                : 'text-[#94a3b8] hover:bg-[#1c2128] hover:text-[#f1f5f9]'
-            }`}
-          >
-            Raw
-          </button>
-          <button
-            onClick={() => setViewMode('preview')}
-            className={`px-3 py-1 transition-colors border-l border-[#30363d] cursor-pointer ${
-              viewMode === 'preview'
-                ? 'bg-[#6762a7] text-white'
-                : 'text-[#94a3b8] hover:bg-[#1c2128] hover:text-[#f1f5f9]'
-            }`}
-          >
-            Preview
-          </button>
+        <div className="flex items-center gap-2">
+          {/* 내보내기 드롭다운 */}
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setIsExportOpen((prev) => !prev)}
+              className="flex items-center gap-1.5 px-3 py-1 text-[12px] border border-[#30363d] rounded-md text-[#94a3b8] hover:bg-[#1c2128] hover:text-[#f1f5f9] transition-colors cursor-pointer"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              내보내기
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {isExportOpen && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-[#1c2128] border border-[#30363d] rounded-md shadow-lg z-10 overflow-hidden">
+                {EXPORT_FORMATS.map(({ format, label }) => (
+                  <button
+                    key={format}
+                    onClick={() => handleExport(format)}
+                    className="w-full text-left px-3 py-2 text-[12px] text-[#94a3b8] hover:bg-[#262c36] hover:text-[#f1f5f9] transition-colors cursor-pointer"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex border border-[#30363d] rounded-md overflow-hidden text-[12px]">
+            <button
+              onClick={() => setViewMode('raw')}
+              className={`px-3 py-1 transition-colors cursor-pointer ${
+                viewMode === 'raw'
+                  ? 'bg-[#6762a7] text-white'
+                  : 'text-[#94a3b8] hover:bg-[#1c2128] hover:text-[#f1f5f9]'
+              }`}
+            >
+              Raw
+            </button>
+            <button
+              onClick={() => setViewMode('preview')}
+              className={`px-3 py-1 transition-colors border-l border-[#30363d] cursor-pointer ${
+                viewMode === 'preview'
+                  ? 'bg-[#6762a7] text-white'
+                  : 'text-[#94a3b8] hover:bg-[#1c2128] hover:text-[#f1f5f9]'
+              }`}
+            >
+              Preview
+            </button>
+          </div>
         </div>
       </div>
 
