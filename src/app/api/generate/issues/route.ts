@@ -2,7 +2,11 @@ import { generateText, Output } from 'ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { gemini } from '@/lib/ai';
-import { GenerateIssuesRequestSchema, GenerateIssuesSchema } from '@/features/issues/schemas';
+import {
+  GenerateIssuesRequestSchema,
+  GenerateIssuesSchema,
+  SplitGenerateIssuesSchema,
+} from '@/features/issues/schemas';
 import { buildIssuesSystemPrompt, buildIssuesUserPrompt } from '@/features/issues/prompt';
 import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
 
@@ -18,11 +22,13 @@ export async function POST(req: Request) {
     return Response.json({ error: '기획서 데이터가 올바르지 않습니다.' }, { status: 400 });
   }
 
-  const { planning } = parseResult.data;
+  const { planning, repoStructure } = parseResult.data;
 
   if (planning.type !== 'planning') {
     return Response.json({ error: '기획서 데이터가 올바르지 않습니다.' }, { status: 400 });
   }
+
+  const isSplit = repoStructure === 'split';
 
   try {
     const { output } = await generateText({
@@ -34,9 +40,9 @@ export async function POST(req: Request) {
         } satisfies GoogleLanguageModelOptions,
       },
       output: Output.object({
-        schema: GenerateIssuesSchema,
+        schema: isSplit ? SplitGenerateIssuesSchema : GenerateIssuesSchema,
       }),
-      system: buildIssuesSystemPrompt(),
+      system: buildIssuesSystemPrompt(repoStructure),
       prompt: buildIssuesUserPrompt(planning),
     });
 
@@ -44,7 +50,16 @@ export async function POST(req: Request) {
       return Response.json({ error: '이슈 생성에 실패했습니다.' }, { status: 500 });
     }
 
-    return Response.json(output);
+    // IssuesResult 형태로 래핑하여 반환
+    if (isSplit) {
+      const splitOutput = output as {
+        frontend: { issues: unknown[] };
+        backend: { issues: unknown[] };
+      };
+      return Response.json({ type: 'split', ...splitOutput });
+    }
+
+    return Response.json({ type: 'monorepo', ...(output as { issues: unknown[] }) });
   } catch (error: unknown) {
     console.error('[POST /api/generate/issues]', error);
 

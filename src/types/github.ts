@@ -1,5 +1,7 @@
 export type IssueType = 'story' | 'task';
 
+export type RepoStructure = 'monorepo' | 'split';
+
 export interface GitHubRepo {
   owner: string;
   name: string;
@@ -25,6 +27,19 @@ export interface EpicGroup {
 export interface GenerateIssuesResult {
   issues: EpicGroup[];
 }
+
+export interface MonorepoIssuesResult {
+  type: 'monorepo';
+  issues: EpicGroup[];
+}
+
+export interface SplitIssuesResult {
+  type: 'split';
+  frontend: { issues: EpicGroup[] };
+  backend: { issues: EpicGroup[] };
+}
+
+export type IssuesResult = MonorepoIssuesResult | SplitIssuesResult;
 
 export interface GitHubRepoItem {
   owner: string;

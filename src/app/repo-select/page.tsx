@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { GitHubRepoItem, GitHubOwnerInfo } from '@/types/github';
+import type { GitHubRepoItem, GitHubOwnerInfo, IssuesResult } from '@/types/github';
 import { GITHUB_CACHE_KEY } from '@/constants/github';
-import { SELECTED_REPO_KEY } from '@/constants/planning';
+import { SELECTED_REPO_KEY, ISSUES_STORAGE_KEY } from '@/constants/planning';
 import Button from '@/components/Button';
 
 type RepoFetchState =
@@ -16,6 +16,14 @@ type OwnerFetchState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'success'; info: GitHubOwnerInfo };
+
+// split 모드 선택 상태: { frontend?: GitHubRepoItem, backend?: GitHubRepoItem }
+interface SplitRepoSelection {
+  frontend: GitHubRepoItem | null;
+  backend: GitHubRepoItem | null;
+}
+
+type SplitPickTarget = 'frontend' | 'backend';
 
 const loadFromCache = (): { repos: GitHubRepoItem[]; owner: GitHubOwnerInfo } | null => {
   try {
@@ -45,11 +53,27 @@ const clearCache = () => {
 
 export default function RepoSelectPage() {
   const router = useRouter();
+  const [isSplit, setIsSplit] = useState(false);
   const [repoState, setRepoState] = useState<RepoFetchState>({ status: 'loading' });
   const [ownerState, setOwnerState] = useState<OwnerFetchState>({ status: 'loading' });
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepoItem | null>(null);
+  const [splitRepos, setSplitRepos] = useState<SplitRepoSelection>({
+    frontend: null,
+    backend: null,
+  });
+  const [splitPickTarget, setSplitPickTarget] = useState<SplitPickTarget>('frontend');
   const [appSettingsUrl, setAppSettingsUrl] = useState<string | null>(null);
+
+  // sessionStorage에서 split 여부 감지
+  useEffect(() => {
+    const raw = sessionStorage.getItem(ISSUES_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as IssuesResult;
+      setIsSplit(parsed.type === 'split');
+    } catch {}
+  }, []);
 
   const fetchAll = useCallback(() => {
     let fetchedRepos: GitHubRepoItem[] | null = null;
@@ -65,7 +89,9 @@ export default function RepoSelectPage() {
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? '레포지토리 목록을 불러오지 못했습니다.');
+          throw new Error(
+            (body as { error?: string }).error ?? '레포지토리 목록을 불러오지 못했습니다.'
+          );
         }
         return res.json() as Promise<GitHubRepoItem[]>;
       })
@@ -120,6 +146,7 @@ export default function RepoSelectPage() {
     clearCache();
     startTransition(() => {
       setSelectedRepo(null);
+      setSplitRepos({ frontend: null, backend: null });
       setRepoState({ status: 'loading' });
       setOwnerState({ status: 'loading' });
     });
@@ -131,9 +158,25 @@ export default function RepoSelectPage() {
     setSelectedRepo(null);
   };
 
+  const handleRepoClick = (repo: GitHubRepoItem) => {
+    if (!isSplit) {
+      setSelectedRepo((prev) => (prev?.fullName === repo.fullName ? null : repo));
+      return;
+    }
+    setSplitRepos((prev) => ({
+      ...prev,
+      [splitPickTarget]: prev[splitPickTarget]?.fullName === repo.fullName ? null : repo,
+    }));
+  };
+
   const handleCreateIssues = () => {
-    if (!selectedRepo) return;
-    sessionStorage.setItem(SELECTED_REPO_KEY, JSON.stringify(selectedRepo));
+    if (isSplit) {
+      if (!splitRepos.frontend || !splitRepos.backend) return;
+      sessionStorage.setItem(SELECTED_REPO_KEY, JSON.stringify(splitRepos));
+    } else {
+      if (!selectedRepo) return;
+      sessionStorage.setItem(SELECTED_REPO_KEY, JSON.stringify(selectedRepo));
+    }
     router.push('/result');
   };
 
@@ -146,6 +189,23 @@ export default function RepoSelectPage() {
 
   const isLoading = repoState.status === 'loading' || ownerState.status === 'loading';
 
+  const canProceed = isSplit ? !!(splitRepos.frontend && splitRepos.backend) : !!selectedRepo;
+
+  const isRepoSelected = (repo: GitHubRepoItem): boolean => {
+    if (!isSplit) return selectedRepo?.fullName === repo.fullName;
+    return (
+      splitRepos.frontend?.fullName === repo.fullName ||
+      splitRepos.backend?.fullName === repo.fullName
+    );
+  };
+
+  const getRepoTag = (repo: GitHubRepoItem): string | null => {
+    if (!isSplit) return null;
+    if (splitRepos.frontend?.fullName === repo.fullName) return '프론트엔드';
+    if (splitRepos.backend?.fullName === repo.fullName) return '백엔드';
+    return null;
+  };
+
   return (
     <main className="flex flex-col min-h-[calc(100vh-120px)]">
       {/* 타이틀 */}
@@ -153,7 +213,9 @@ export default function RepoSelectPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#f1f5f9]">레포지토리 선택</h1>
           <p className="text-[13px] text-[#94a3b8] mt-1">
-            이슈와 프로젝트를 생성할 레포지토리를 선택하세요.
+            {isSplit
+              ? '프론트엔드와 백엔드 레포지토리를 각각 선택하세요.'
+              : '이슈와 프로젝트를 생성할 레포지토리를 선택하세요.'}
           </p>
         </div>
         {!isLoading && repoState.status === 'success' && (
@@ -165,6 +227,39 @@ export default function RepoSelectPage() {
           </button>
         )}
       </div>
+
+      {/* split 모드: 어떤 레포를 선택 중인지 탭 */}
+      {isSplit && !isLoading && repoState.status === 'success' && (
+        <div className="px-6 pb-4 flex gap-2 items-center">
+          {(['frontend', 'backend'] as SplitPickTarget[]).map((target) => {
+            const selected = splitRepos[target];
+            const isActive = splitPickTarget === target;
+            return (
+              <button
+                key={target}
+                onClick={() => setSplitPickTarget(target)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-[13px] font-medium cursor-pointer transition-colors ${
+                  isActive
+                    ? 'border-[#6762a7] bg-[#6762a7]/10 text-[#f1f5f9]'
+                    : 'border-[#30363d] bg-transparent text-[#94a3b8] hover:bg-[#161b22]'
+                }`}
+              >
+                {target === 'frontend' ? '프론트엔드' : '백엔드'}
+                {selected ? (
+                  <span className="text-[11px] px-1.5 py-0.5 rounded bg-[#6762a7]/20 text-[#a89fd8] truncate max-w-24">
+                    {selected.name}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-[#64748b]">미선택</span>
+                )}
+              </button>
+            );
+          })}
+          <span className="text-[12px] text-[#64748b] ml-1">
+            선택할 레포 탭을 누른 후 레포를 클릭하세요.
+          </span>
+        </div>
+      )}
 
       {/* 본문 */}
       <div className="flex flex-1 gap-0 px-6 pb-24 min-h-0">
@@ -184,7 +279,7 @@ export default function RepoSelectPage() {
         {!isLoading && repoState.status === 'success' && (
           <>
             {/* 왼쪽 사이드바: 계정/조직 */}
-            <div className="w-[200px] shrink-0 flex flex-col pr-4">
+            <div className="w-50 shrink-0 flex flex-col pr-4">
               <p className="text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 px-1">
                 계정 / 조직
               </p>
@@ -252,13 +347,14 @@ export default function RepoSelectPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-3 overflow-y-auto pr-1">
                   {filteredRepos.map((repo) => {
-                    const isSelected = selectedRepo?.fullName === repo.fullName;
+                    const selected = isRepoSelected(repo);
+                    const tag = getRepoTag(repo);
                     return (
                       <button
                         key={repo.fullName}
-                        onClick={() => setSelectedRepo(isSelected ? null : repo)}
+                        onClick={() => handleRepoClick(repo)}
                         className={`flex flex-col items-start gap-2 px-4 py-4 rounded-xl cursor-pointer text-left w-full transition-colors border ${
-                          isSelected
+                          selected
                             ? 'border-[#6762a7] bg-[#6762a7]/10'
                             : 'border-[#30363d] bg-[#161b22] hover:border-[#6762a7]/50 hover:bg-[#1c2128]'
                         }`}
@@ -267,12 +363,16 @@ export default function RepoSelectPage() {
                           <span className="text-[13px] font-semibold text-[#f1f5f9] flex-1 truncate">
                             {repo.name}
                           </span>
-                          {repo.isPrivate && (
+                          {tag && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#6762a7]/30 text-[#a89fd8] shrink-0">
+                              {tag}
+                            </span>
+                          )}
+                          {repo.isPrivate ? (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#30363d] text-[#94a3b8] shrink-0">
                               PRIVATE
                             </span>
-                          )}
-                          {!repo.isPrivate && (
+                          ) : (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#3fb950]/20 text-[#3fb950] shrink-0">
                               PUBLIC
                             </span>
@@ -298,7 +398,7 @@ export default function RepoSelectPage() {
         <Button variant="secondary" onClick={() => router.back()}>
           이전 단계
         </Button>
-        <Button disabled={!selectedRepo} onClick={handleCreateIssues}>
+        <Button disabled={!canProceed} onClick={handleCreateIssues}>
           이슈 및 프로젝트 만들기 →
         </Button>
       </div>
