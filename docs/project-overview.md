@@ -57,6 +57,16 @@ src/
 ├── features/
 │   ├── planning/
 │   │   ├── IdeaForm/index.tsx    # 아이디어 입력 + AI 질문 UI (Client Component)
+│   │   ├── GeneratingCard.tsx    # 이슈 생성 중 로딩 UI (Client Component)
+│   │   ├── PlanningViewer/       # 기획서 뷰어 (Raw/Preview 토글 포함)
+│   │   │   ├── index.tsx         # markdownContents 수신, 탭 사이드바 + 문서 영역 조립
+│   │   │   ├── TabSidebar.tsx    # 왼쪽 탭 사이드바
+│   │   │   └── DocArea.tsx       # Raw textarea | Preview(react-markdown) 토글
+│   │   ├── constants.ts          # SidebarTab 타입, SIDEBAR_TABS, TAB_FILENAME
+│   │   ├── hooks/
+│   │   │   └── usePlanningPage.ts  # markdown 상태 관리, 역파싱 + 이슈 생성 API
+│   │   ├── utils/
+│   │   │   └── planningMarkdown.ts # PlanningResult ↔ markdown 양방향 변환
 │   │   ├── prompt.ts             # AI 기획서 생성 프롬프트 빌더
 │   │   └── schemas.ts            # Zod 스키마 (planning 응답)
 │   └── issues/
@@ -210,6 +220,33 @@ src/
 - 최대 3라운드 AI 추가 질문 처리
 - 힌트 카드 3종 (목표/기능/디자인), 에러 처리 (429 포함)
 
+#### GeneratingCard (`src/features/planning/GeneratingCard.tsx`)
+
+- 이슈 생성 중 표시되는 로딩 UI (스피너 + 단계 로그)
+- PlanningPage에서 `isGenerating === true`일 때 렌더
+
+#### PlanningViewer (`src/features/planning/PlanningViewer/index.tsx`)
+
+- **Client Component**: `activeTab` 상태 관리 (proposal / scenarios / techChallenge)
+- Props: `data: PlanningResult`, `onDataChange: (data: PlanningResult) => void`
+- TabSidebar + DocArea 조립
+
+#### TabSidebar (`src/features/planning/PlanningViewer/TabSidebar.tsx`)
+
+- Props: `activeTab`, `onTabChange`
+- 3개 탭 버튼 렌더 (활성 탭은 퍼플 배경)
+- `SidebarTab` 타입과 `SIDEBAR_TABS` 상수 export
+
+#### DocArea (`src/features/planning/PlanningViewer/DocArea.tsx`)
+
+- **Raw/Preview 토글** 핵심 컴포넌트
+- Props: `activeTab`, `markdownContent: string`, `onMarkdownChange`
+- 내부 상태: `viewMode ('preview' | 'raw')`
+- 탭 변경 시 `viewMode` → `preview` 초기화 (useEffect)
+- **Raw 모드**: `<textarea>` — 편집 즉시 `onMarkdownChange` 호출 (onChange)
+- **Preview 모드**: `react-markdown` + 커스텀 컴포넌트로 Notion 스타일 렌더
+- 토글 전환 시 파싱 오류 없음 (Preview는 단순 렌더링)
+
 #### IssueCard (`src/features/issues/IssueCard/index.tsx`)
 
 - **재귀 컴포넌트**: `children` 있으면 하위 IssueCard 렌더 (들여쓰기)
@@ -359,15 +396,29 @@ IssueCard는 `children` prop이 있을 경우 자기 자신을 재귀 렌더한�
 
 ## 12. 파일 변경 이력
 
-| 날짜       | 파일                           | 변경 내용                     |
-| ---------- | ------------------------------ | ----------------------------- |
-| 2026-03-26 | `components/Stepper/index.tsx` | 신규 추가 — 5단계 진행 스테퍼 |
-| 2026-03-26 | `app/globals.css`              | 디자인 전체 수정 (Figma 기반) |
-| 2026-04-01 | `docs/project-overview.md`     | 최초 작성                     |
+| 날짜       | 파일                                              | 변경 내용                                               |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------- |
+| 2026-03-26 | `components/Stepper/index.tsx`                    | 신규 추가 — 5단계 진행 스테퍼                           |
+| 2026-03-26 | `app/globals.css`                                 | 디자인 전체 수정 (Figma 기반)                           |
+| 2026-04-01 | `docs/project-overview.md`                        | 최초 작성                                               |
+| 2026-04-01 | `app/planning/page.tsx`                           | 리팩토링 — 훅 분리, 컴포넌트 분리로 간소화              |
+| 2026-04-01 | `features/planning/constants.ts`                  | 신규 추가 — SidebarTab 타입, SIDEBAR_TABS, TAB_FILENAME |
+| 2026-04-01 | `features/planning/hooks/usePlanningPage.ts`      | 신규 추가 — markdown 상태 관리 + 역파싱 + 이슈 생성     |
+| 2026-04-01 | `features/planning/utils/planningMarkdown.ts`     | 신규 추가 — PlanningResult ↔ markdown 변환 유틸         |
+| 2026-04-01 | `features/planning/GeneratingCard.tsx`            | 신규 추가 — 이슈 생성 중 로딩 UI                        |
+| 2026-04-01 | `features/planning/PlanningViewer/index.tsx`      | 신규 추가 — markdownContents 기반 뷰어 조립             |
+| 2026-04-01 | `features/planning/PlanningViewer/TabSidebar.tsx` | 신규 추가 — 탭 사이드바                                 |
+| 2026-04-01 | `features/planning/PlanningViewer/DocArea.tsx`    | 신규 추가 — Raw textarea / Preview react-markdown 토글  |
+| 2026-04-01 | `docs/adr-001-raw-preview-editor.md`              | 신규 추가 + 수정 — react-markdown 채택 근거 ADR         |
 
 ### Deprecated
 
-현재 없음.
+| 날짜       | 파일                                                         | 사유                           |
+| ---------- | ------------------------------------------------------------ | ------------------------------ |
+| 2026-04-01 | `features/planning/PlanningViewer/DocSection.tsx`            | react-markdown 전환으로 불필요 |
+| 2026-04-01 | `features/planning/PlanningViewer/tabs/ProposalTab.tsx`      | react-markdown 전환으로 불필요 |
+| 2026-04-01 | `features/planning/PlanningViewer/tabs/ScenariosTab.tsx`     | react-markdown 전환으로 불필요 |
+| 2026-04-01 | `features/planning/PlanningViewer/tabs/TechChallengeTab.tsx` | react-markdown 전환으로 불필요 |
 
 ---
 
