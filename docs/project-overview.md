@@ -451,4 +451,31 @@ IssueCard는 `children` prop이 있을 경우 자기 자신을 재귀 렌더한�
 
 ---
 
-_최종 업데이트: 2026-04-01 (레포 구조 선택 기능 추가)_
+---
+
+## 13. 하네스 엔지니어링 시스템
+
+Claude Code 훅 + 셸 스크립트 기반 자동 품질 검증 시스템. 파일 수정 즉시 규칙 위반을 탐지해 Claude에게 피드백한다.
+
+```
+.claude/settings.json          ← PostToolUse / PreToolUse / Stop 훅 등록
+.claude/hooks/
+  on-file-edit.sh              ← Write/Edit 후: magic, naming, component, docs 검사
+  pre-bash.sh                  ← Bash 전: 위험 명령어 차단
+  on-stop.sh                   ← 작업 완료 전: gate.sh --fast 실행
+
+scripts/harness/
+  gate.sh                      ← 마스터 게이트 (모든 검사 실행)
+  check-magic.sh               ← 인라인 스토리지 키·hex 색상·레이블 리터럴
+  check-component.sh           ← page.tsx: useState 과다 + useXxxPage 훅 누락
+  check-naming.sh              ← is/has/on 접두사, MOCK_ 접두사
+  check-imports.sh             ← cross-feature 직접 임포트
+  check-docs.sh                ← docs/project-overview.md 동기화 알림
+  check-ts.sh                  ← pnpm tsc --noEmit
+```
+
+> 상세 설계: `docs/harness-engineering.md`
+
+---
+
+_최종 업데이트: 2026-04-13 (하네스 엔지니어링 시스템 추가)_

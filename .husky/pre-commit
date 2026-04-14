@@ -1,1 +1,50 @@
+#!/bin/bash
+# .husky/pre-commit
+# 커밋 전 전체 품질 검증
+#
+# 순서: prettier → 단위 테스트 → lint → build
+# 하나라도 실패하면 커밋이 차단된다.
+# --no-verify 우회 불가 (CLAUDE.md §11 참조)
+
+set -e
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT"
+
+echo ""
+echo "╔══════════════════════════════════════════╗"
+echo "║  🚦 Husky pre-commit 품질 검증           ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+
+# ── Step 1: Prettier (lint-staged) ───────────────────────────────────────────
+echo "▶ Step 1/4 — Prettier 포맷 검사"
 pnpm lint-staged
+echo "  ✓ Prettier 완료"
+echo ""
+
+# ── Step 2: 단위 테스트 ───────────────────────────────────────────────────────
+echo "▶ Step 2/4 — 단위 테스트"
+if grep -q '"test"' package.json 2>/dev/null; then
+  pnpm test
+  echo "  ✓ 단위 테스트 통과"
+else
+  echo "  ⚠️  단위 테스트 미설정 — 건너뜀"
+  echo "      (pnpm add -D vitest 로 설정하세요)"
+fi
+echo ""
+
+# ── Step 3: ESLint ────────────────────────────────────────────────────────────
+echo "▶ Step 3/4 — ESLint"
+pnpm lint
+echo "  ✓ ESLint 통과"
+echo ""
+
+# ── Step 4: Build ─────────────────────────────────────────────────────────────
+echo "▶ Step 4/4 — TypeScript + Build"
+pnpm build
+echo "  ✓ 빌드 성공"
+echo ""
+
+echo "✅ 모든 검증 통과 — 커밋 진행"
+echo ""

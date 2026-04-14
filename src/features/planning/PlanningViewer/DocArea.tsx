@@ -61,13 +61,15 @@ export interface DocAreaProps {
 
 export default function DocArea({ activeTab, markdownContent, onMarkdownChange }: DocAreaProps) {
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
+  const [prevActiveTab, setPrevActiveTab] = useState(activeTab);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  // 탭 전환 시 Preview 모드로 초기화
-  useEffect(() => {
+  // 탭 전환 시 Preview 모드로 초기화 (render 중 파생 상태 갱신)
+  if (prevActiveTab !== activeTab) {
+    setPrevActiveTab(activeTab);
     setViewMode('preview');
-  }, [activeTab]);
+  }
 
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {

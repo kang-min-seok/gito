@@ -53,7 +53,17 @@ const clearCache = () => {
 
 export default function RepoSelectPage() {
   const router = useRouter();
-  const [isSplit, setIsSplit] = useState(false);
+  const [isSplit] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const raw = sessionStorage.getItem(ISSUES_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as IssuesResult;
+      return parsed.type === 'split';
+    } catch {
+      return false;
+    }
+  });
   const [repoState, setRepoState] = useState<RepoFetchState>({ status: 'loading' });
   const [ownerState, setOwnerState] = useState<OwnerFetchState>({ status: 'loading' });
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
@@ -64,16 +74,6 @@ export default function RepoSelectPage() {
   });
   const [splitPickTarget, setSplitPickTarget] = useState<SplitPickTarget>('frontend');
   const [appSettingsUrl, setAppSettingsUrl] = useState<string | null>(null);
-
-  // sessionStorage에서 split 여부 감지
-  useEffect(() => {
-    const raw = sessionStorage.getItem(ISSUES_STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as IssuesResult;
-      setIsSplit(parsed.type === 'split');
-    } catch {}
-  }, []);
 
   const fetchAll = useCallback(() => {
     let fetchedRepos: GitHubRepoItem[] | null = null;

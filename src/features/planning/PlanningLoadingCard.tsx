@@ -25,11 +25,13 @@ export default function PlanningLoadingCard({ context }: PlanningLoadingCardProp
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    setCurrentStep(0);
     const timer = setInterval(() => {
       setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
     }, STEP_INTERVAL_MS);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      setCurrentStep(0);
+    };
   }, [context, steps.length]);
 
   return (
